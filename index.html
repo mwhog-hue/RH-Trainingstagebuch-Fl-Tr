@@ -13,7 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Trainingstagebuch">
-<title>Trainingstagebuch Rettungshundearbeit v2.9.2</title>
+<title>Trainingstagebuch Rettungshundearbeit v2.10</title>
 <style>
   :root{
     --bg:#F6F2E8;
@@ -322,6 +322,12 @@
 /* v1.1 Stabilität + RHS Exchange */
 .exchange-card{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
 .exchange-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.exchange-status{font-size:.9rem;margin-top:8px}
+
+details.data-fold{background:var(--card,#fff);border:1px solid var(--line,#ddd);border-radius:12px;padding:8px 12px;margin:8px 0}
+details.data-fold>summary{cursor:pointer;font-weight:700;padding:4px 0}
+details.import-fold{margin:10px 0}details.import-fold>summary{cursor:pointer;font-weight:700}
+details.person-find>summary{cursor:pointer}
+@media(max-width:700px){.shortcuts-btn#btn-shortcuts{display:none}.main-nav{display:flex!important;flex-wrap:wrap;gap:6px}.main-nav button{flex:1 1 30%;margin:0!important;padding:10px 6px!important;justify-content:center}.main-nav button .key{display:none}.main-nav #btn-legal{flex-basis:100%;font-size:13px}}
 </style>
 <style id="ux-compact-style">
 /* UX-Kompakt 2026-09: reine Darstellung, keine Daten-/Exchange-Aenderung */
@@ -341,28 +347,14 @@ main,.app,#content{max-width:var(--ux-content-max);margin-left:auto;margin-right
   <div class="app-brand">
     <img class="app-logo" src="icon-192.png" width="92" height="92" alt="Trainingstagebuch Fläche und Trümmer: Pfote, Kompass und offenes Buch">
     <div class="app-brand-text">
-      <h1>Trainingstagebuch Rettungshundearbeit <small>v2.9.2</small></h1>
+      <h1>Trainingstagebuch Rettungshundearbeit <small>v2.10</small></h1>
       <p class="app-brand-tag">Fläche · Trümmer · ergänzendes Training</p>
     </div>
   </div>
-  <p class="sub">Dokumentation nach Trainingsbereich – für Ausbildung, Auswertung und Einsatzvorbereitung. Mehrere Übungsblöcke am selben Tag, Trainingstage im Überblick und eine automatische Auswertung.</p>
-  <p class="sub" style="margin-top:4px;">Nach dem ersten vollständigen Laden über den App-Link auch offline nutzbar. Wetter und Ortsnamenabruf benötigen Internet; die Standortermittlung benötigt deine Freigabe.</p>
+  <p class="sub">Training erfassen · Trainingstage · Auswertung – offline nutzbar; Wetter und Ortsname optional online.</p>
 </header>
 
 <div class="wrap">
-
-  <div class="storage-card" id="storage-card"></div>
-  <input type="file" id="file-load-input" accept="application/json" style="display:none">
-  <div class="exchange-card" id="rhs-exchange-card">
-    <strong>RH App-Familie · Datenaustausch</strong>
-    <p class="hint">Optionaler, nachholbarer Austausch. Andere RH-Apps müssen weder installiert noch gleichzeitig aktuell sein. Ältere Feldstände überschreiben keine neueren.</p>
-    <div class="exchange-actions">
-      <button class="secondary" id="btn-rhs-export" type="button">Teamdaten austauschen · Export</button>
-      <button class="secondary" id="btn-rhs-import" type="button">RHS-Exchange importieren</button>
-    </div>
-    <input type="file" id="rhs-exchange-input" accept="application/json" style="display:none">
-    <div class="exchange-status" id="rhs-exchange-status" role="status"></div>
-  </div>
 
   <div class="profile-card" id="profile-card">
     <div class="summary" id="profile-summary"></div>
@@ -395,11 +387,27 @@ main,.app,#content{max-width:var(--ux-content-max);margin-left:auto;margin-right
     </div>
   </div>
 
+  
+
+  <details class="data-fold"><summary>💾 Sicherung, Datenaustausch &amp; Excel</summary>
+<div class="storage-card" id="storage-card"></div>
+  <input type="file" id="file-load-input" accept="application/json" style="display:none">
+  <div class="exchange-card" id="rhs-exchange-card">
+    <strong>RH App-Familie · Datenaustausch</strong>
+    <p class="hint">Optional. Ältere Feldstände überschreiben keine neueren.</p>
+    <div class="exchange-actions">
+      <button class="secondary" id="btn-rhs-export" type="button">Teamdaten austauschen · Export</button>
+      <button class="secondary" id="btn-rhs-import" type="button">RHS-Exchange importieren</button>
+    </div>
+    <input type="file" id="rhs-exchange-input" accept="application/json" style="display:none">
+    <div class="exchange-status" id="rhs-exchange-status" role="status"></div>
+  </div>
+
   <div class="toolbar">
     <button class="secondary" id="btn-export-all" type="button">Excel-Auswertung (alle Bereiche)</button>
     <span class="hint" id="export-status"></span>
   </div>
-
+</details>
   <div class="main-nav" id="main-nav"></div>
 
   <div id="app-view"></div>
@@ -872,34 +880,36 @@ function renderFrame(){
 }
 
 function renderPlaceTools(){
-  return `<div class="place-tools">
+  return `<details class="compact-details import-fold"${homeworkInbox.length?' open':''}><summary>📥 Gebietsvorlage merken · Übernahme aus Assistenten${homeworkInbox.length?' · '+homeworkInbox.length+' Hausaufgabe(n)':''}</summary>
+  <div class="place-tools">
     <div class="row">
       <label><input id="remember-new-place" type="checkbox" checked> Neuen Ort beim Speichern als Gebietsvorlage merken</label>
       <button class="mini-btn" id="btn-place-save" type="button">Aktuelle Angaben jetzt als Gebiet merken</button>
       <button class="mini-btn" id="btn-place-update" type="button" disabled>Gewählte Vorlage aktualisieren</button>
       <button class="btn-link" id="btn-place-delete" type="button" disabled>Vorlage löschen</button>
     </div>
-    <div class="place-status" id="place-status">Die Vorlage kann Ort, Entfernung und die jeweilige Geländevorauswahl übernehmen. Änderungen im aktuellen Training bleiben zunächst nur in diesem Eintrag.</div>
+    <div class="place-status" id="place-status">Merkt Ort, Entfernung und Geländevorauswahl für spätere Trainings.</div>
   </div>
   <div class="place-tools taktik-import-box">
     <div class="row">
       <button class="mini-btn" id="btn-import-taktik" type="button">🎯 Taktik-Assistent-Daten einlesen (JSON)</button>
       <input type="file" id="taktik-import-input" accept="application/json" style="display:none">
     </div>
-    <div class="place-status" id="taktik-import-status">Öffnet aus einer vom eigenständigen Taktik-Assistenten exportierten JSON-Datei einen NEUEN, vorausgefüllten Flächensuche-Eintrag (Ort, Wetter, Gelände-Vorschläge, Suchdauer, Track- und Fund-Zusammenfassung) – unabhängig davon, welcher Reiter hier gerade offen ist. Ein evtl. gerade unfertig bearbeiteter Eintrag wird dabei nicht gespeichert.</div>
+    <div class="place-status" id="taktik-import-status">Öffnet einen neuen, vorausgefüllten Flächensuche-Eintrag. Ein ungespeicherter Eintrag geht dabei verloren.</div>
   </div>
   <div class="place-tools taktik-import-box">
     <div class="row"><button class="mini-btn" id="btn-import-rubble" type="button">🧱 Trümmersuchassistent-Daten einlesen (JSON)</button><input type="file" id="rubble-import-input" accept="application/json" style="display:none"></div>
-    <div class="place-status" id="rubble-import-status">Öffnet einen neuen vorausgefüllten Trümmersuche-Eintrag. Lage, Struktur, Gefahren, Suchaufbau, Geruchsbeobachtungen, Fundstellen und Bewertungen werden übernommen; anschließend bitte als Trainingseintrag prüfen und ergänzen.</div>
+    <div class="place-status" id="rubble-import-status">Öffnet einen neuen, vorausgefüllten Trümmersuche-Eintrag.</div>
   </div>
   <div class="place-tools taktik-import-box">
     <div class="row">
       <button class="mini-btn" id="btn-import-homework" type="button">📚 Hausaufgaben aus RH Ausbildungsbegleiter</button>
       <input type="file" id="homework-import-input" accept="application/json" style="display:none">
     </div>
-    <div class="place-status" id="homework-import-status">Importiert die vollständigen Übungsaufbauten in einen lokalen Aufgaben-Eingang. Von dort kann jede Aufgabe als vorausgefüllter Trainingseintrag geöffnet und nach der Durchführung bewertet werden.</div>
+    <div class="place-status" id="homework-import-status">Übungsaufbauten landen im Aufgaben-Eingang und lassen sich als Trainingseintrag öffnen.</div>
     <div id="homework-inbox">${renderHomeworkInbox()}</div>
-  </div>`;
+  </div>
+  </details>`;
 }
 
 function renderHomeworkInbox(){
@@ -1002,8 +1012,8 @@ function renderWeather(){
     <legend>Wetter <span class="badge-online">🌐 optional online</span></legend>
     <label class="field checkbox-field"><input type="checkbox" id="chk-drinnen"><span>Training drinnen / witterungsunabhängig</span></label>
     <div class="weather-online-box">
-      <button type="button" class="secondary" id="btn-fetch-weather">🌐 Aktuelles Wetter am Standort übernehmen</button>
-      <span class="hint" id="weather-online-status">Nutzt den Standort einmalig zur Abfrage, übernimmt die aktuellen Wetterwerte von Open-Meteo und ergänzt den Ortsnamen. Die Koordinaten werden nicht im Trainingseintrag gespeichert. Alle Werte bleiben vor dem Speichern änderbar.</span>
+      <button type="button" class="primary" id="btn-fetch-weather">🌐 Wetter jetzt automatisch übernehmen</button>
+      <span class="hint" id="weather-online-status">Standort wird nur für die Abfrage genutzt, nicht gespeichert. Werte bleiben änderbar.</span>
     </div>
     <div class="grid3" id="weather-fields">
       ${field('Temperatur (°C)', `<input type="number" step="0.1">`)}
@@ -1191,8 +1201,7 @@ function repeaterItemHelfer(){
       ${field('Bekanntheit für den Hund', `<select>${opts(['unbekannt','flüchtig bekannt','gut bekannt'])}</select>`)}
       ${field('Erfahrung als Helfer', `<select>${opts(['erstmalig','wenig erfahren','erfahren'])}</select>`)}
     </div>
-    <div class="person-find">
-      <p class="person-find-title">Individuelle Auffindesituation dieser Person</p>
+    <details class="person-find compact-details"><summary class="person-find-title">Auffindesituation dieser Person (optional)</summary>
       <div class="grid3">
         ${field('Versteckart / Position', `<select>${opts(['offen ebenerdig','erhöht (Baum/Fahrzeug/Dach)','verdeckt (Gebüsch/Graben)','in Gebäude/Raum','im Wasser','unter Trümmern / im Hohlraum','bewegte Person','sonstiges'])}</select>`)}
         ${field('Sichtbarkeit für den Hund', `<select>${opts(['frei sichtbar','teilweise verdeckt','vollständig verdeckt'])}</select>`)}
@@ -1205,7 +1214,7 @@ function repeaterItemHelfer(){
         ${field('Geruchsaustritt / Windbezug', `<input type="text" placeholder="z. B. Austritt seitlich, wechselnder Wind">`)}
       </div>
       ${field('Individuelle Ablenkungen / Besonderheiten', `<textarea rows="2" placeholder="z. B. Wildwechsel, zweite Person in der Nähe, Verkehr, schwerer Zugang"></textarea>`)}
-    </div>
+    </details>
     <div class="person-result">
       <p class="person-result-title">Individuelles Ergebnis dieser Person</p>
       <div class="grid3">
