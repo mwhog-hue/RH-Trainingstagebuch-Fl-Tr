@@ -1,14 +1,14 @@
 # Trainingstagebuch Rettungshundearbeit
 
-![Trainingstagebuch Fläche / Trümmer](icons/icon-192.png)
+![Trainingstagebuch Fläche / Trümmer](icon-192.png)
 
-Version 2.9.1 · Training, Prüfung und Einsatzvorbereitung für Fläche, Trümmer und ergänzendes Training. Eigenständig nutzbare Web-App mit lokal gespeicherten Einträgen, JSON-Sicherung und Excel-Auswertung.
+Version 2.9.2 · Training, Prüfung und Einsatzvorbereitung für Fläche, Trümmer und ergänzendes Training. Eigenständig nutzbare Web-App mit lokal gespeicherten Einträgen, JSON-Sicherung und Excel-Auswertung.
 
 ## Auf GitHub veröffentlichen
 
 1. Das ZIP auf dem Computer entpacken.
 2. Im vorgesehenen GitHub-Repository **Add file → Upload files** öffnen.
-3. Den gesamten **Inhalt** des entpackten Pakets hochladen: `index.html`, `manifest.webmanifest`, `sw.js`, `README.md`, `favicon.ico`, `.nojekyll` und den vollständigen Ordner `icons`. Die `index.html` muss direkt im Hauptverzeichnis liegen. Das ZIP und den äußeren Paketordner nicht als Ersatz hochladen.
+3. Den gesamten **Inhalt** des entpackten Pakets hochladen: `index.html`, `manifest.webmanifest`, `sw.js`, `README.md`, `favicon.ico`, `.nojekyll` sowie alle Symboldateien (`icon-*.png`, `favicon-*.png`, `apple-touch-icon.png`). Alle Dateien liegen direkt im Hauptverzeichnis, es gibt keinen Unterordner. Die `index.html` muss direkt im Hauptverzeichnis liegen. Das ZIP und den äußeren Paketordner nicht als Ersatz hochladen.
 4. Mit **Commit changes** speichern. Bei einer vorhandenen App die gleichnamigen Dateien ersetzen; keine zweite Datei mit einem Namen wie `index(1).html` anlegen.
 5. Bei einem neuen Repository **Settings → Pages** öffnen: **Source → Deploy from a branch**, **Branch → main**, **Folder → /(root)**, dann **Save**. Bei einem vorhandenen Repository die bereits verwendete Veröffentlichungsbranch auswählen.
 6. Warten, bis GitHub die Veröffentlichung abgeschlossen hat. Den unter **Pages** angezeigten HTTPS-Link öffnen und für Tester weitergeben.
