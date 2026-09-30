@@ -1,0 +1,2960 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#12352f">
+<meta name="description" content="Trainingstagebuch Rettungshundearbeit – Offline-Web-App zur Dokumentation von Training, Prüfung und Einsatz.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trainingstagebuch">
+<title>Trainingstagebuch Rettungshundearbeit v2.9.1</title>
+<style>
+  :root{
+    --bg:#F6F2E8;
+    --paper:#FCFAF3;
+    --ink:#232922;
+    --muted:#6B7263;
+    --line:#DDD5BE;
+    --accent:#C9601F;
+    --accent-ink:#7A3A10;
+    --ok:#3F6B4A;
+    --danger:#A8402C;
+
+    --c-flaechensuche:#3F6B4A;
+    --c-anzeige:#B8791A;
+    --c-gehorsam:#395B73;
+    --c-gewandtheit:#2E7D6B;
+    --c-truemmersuche:#9C4A32;
+    --c-spontan:#8B8578;
+    --c-custom:#6E5A8C;
+    --c-physio:#A85D78;
+    --c-alltag:#7A8C3F;
+  }
+  *{box-sizing:border-box;}
+  html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size:15px; line-height:1.45;
+    padding-bottom:calc(60px + env(safe-area-inset-bottom));
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
+  }
+  /* Größere, gut treffbare Tippflächen auf dem Handy; verhindert außerdem,
+     dass iOS beim Fokussieren eines Feldes automatisch hineinzoomt (Formularfelder
+     werden weiter unten explizit auf mindestens 16px gesetzt). */
+  button, .tab, .chip, .step-btn{ touch-action:manipulation; -webkit-tap-highlight-color:rgba(35,41,34,.08); }
+  h1,h2,h3,legend{ font-family:Georgia, 'Times New Roman', serif; font-weight:700; }
+  .mono{ font-family:ui-monospace, 'Cascadia Mono', Consolas, monospace; }
+
+  header.app-head{
+    padding:28px 24px 18px; max-width:980px; margin:0 auto;
+  }
+  .app-brand{display:flex;align-items:center;gap:16px;margin-bottom:10px;}
+  .app-logo{width:92px;height:92px;flex:none;border-radius:20px;box-shadow:0 3px 12px rgba(18,53,47,.18);}
+  .app-brand-text{min-width:0;}
+  .app-brand-tag{margin:2px 0 0;color:var(--accent-ink);font-size:.95rem;font-weight:600;}
+  @media(max-width:480px){.app-brand{gap:12px;}.app-logo{width:72px;height:72px;border-radius:16px;}header.app-head .app-brand h1{font-size:1.35rem;}.app-brand-tag{font-size:.86rem;}}
+  @media print{.app-logo{box-shadow:none;}}
+  header.app-head h1{ margin:0 0 4px; font-size:1.7rem; color:var(--ink); }
+  header.app-head p.sub{ margin:0; color:var(--muted); }
+
+  .wrap{ max-width:980px; margin:0 auto; padding:0 24px; }
+
+  /* --- Speicherort-Auswahl --- */
+  .storage-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:6px;
+    padding:14px 18px; margin-bottom:16px; font-size:.92rem;
+  }
+  .storage-card .choice-row{ display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; }
+  .storage-card .choice-btn{
+    flex:1; min-width:220px; text-align:left; border:1px solid var(--line); background:#fff;
+    border-radius:6px; padding:12px 14px; cursor:pointer; font:inherit;
+  }
+  .storage-card .choice-btn:hover{ border-color:var(--accent); }
+  .storage-card .choice-btn strong{ display:block; margin-bottom:3px; }
+  .storage-card .choice-btn span{ color:var(--muted); font-size:.85rem; }
+  .storage-status-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .dirty-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent); margin-right:5px; vertical-align:middle; }
+
+  /* --- Team-/Profilkarte --- */
+  .profile-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:6px;
+    padding:14px 18px; margin-bottom:22px; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;
+  }
+  .profile-card .summary strong{ display:block; font-family:'Roboto Slab',serif; font-size:1.05rem; }
+  .profile-card .summary span{ color:var(--muted); font-size:.92rem; }
+  .btn-link{ background:none; border:none; color:var(--accent-ink); text-decoration:underline; cursor:pointer; font:inherit; padding:0; }
+  .profile-edit{ display:none; margin-top:14px; padding-top:14px; border-top:1px dashed var(--line); width:100%; }
+  .profile-edit.open{ display:block; }
+
+  /* --- Werkzeugleiste --- */
+  .toolbar{ display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .toolbar .hint, .entries-head .hint{ color:var(--muted); font-size:.85rem; font-style:italic; }
+
+  /* --- Hauptnavigation --- */
+  .main-nav{ display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap; align-items:center; }
+  .main-nav button{ appearance:none; border:1px solid var(--line); background:var(--paper); color:var(--muted); border-radius:8px; padding:10px 16px; font:inherit; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; }
+  .main-nav button .key{ font-size:.7rem; color:var(--muted); border:1px solid var(--line); border-radius:4px; padding:0 5px; }
+  .main-nav button.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .main-nav button.active .key{ border-color:rgba(255,255,255,.4); color:#fff; }
+  .main-nav .shortcuts-btn{ margin-left:auto; }
+
+  /* --- Reiter / Tabs --- */
+  .tabbar{ display:flex; flex-wrap:wrap; gap:4px; align-items:flex-end; margin-bottom:0; }
+  .tab{
+    appearance:none; border:1px solid var(--line); border-bottom:none;
+    background:#EAE4D2; color:var(--muted);
+    padding:10px 16px 9px; border-radius:8px 8px 0 0; cursor:pointer;
+    font-family:'Roboto Slab',serif; font-weight:500; font-size:.92rem;
+    position:relative; top:1px; transition:transform .12s ease;
+  }
+  .tab .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
+  .tab.active{
+    background:var(--paper); color:var(--ink); font-weight:700;
+    border-color:var(--line); transform:translateY(-2px);
+    box-shadow:0 -2px 0 var(--tab-color, var(--accent)) inset;
+  }
+  .tab.spontan{ border-style:dashed; }
+  .tab.add-tab{ background:transparent; border-style:dashed; color:var(--muted); }
+  .new-cat-row{ display:none; gap:8px; padding:10px 4px; align-items:center; }
+  .new-cat-row.open{ display:flex; }
+  .new-cat-row input{ flex:1; max-width:280px; }
+
+  .panel{
+    background:var(--paper); border:1px solid var(--line); border-radius:0 6px 6px 6px;
+    padding:22px; margin-bottom:34px;
+  }
+
+  /* --- Formularelemente --- */
+  fieldset.section{ border:1px solid var(--line); border-radius:6px; margin:0 0 18px; padding:14px 16px 16px; }
+  fieldset.section legend{ padding:0 8px; font-size:.98rem; color:var(--ink); }
+  fieldset.section.result{ border-color:var(--accent); background:#FBF3EA; }
+  .frame-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:18px; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+  .grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px 16px; }
+  @media (max-width:640px){ .frame-row,.grid2,.grid3{ grid-template-columns:1fr; } }
+
+  label.field{ display:flex; flex-direction:column; gap:4px; margin-bottom:10px; font-size:.88rem; color:var(--muted); }
+  label.field span{ font-weight:600; color:var(--ink); }
+  label.field.checkbox-field{ flex-direction:row; align-items:center; gap:8px; }
+  label.field.checkbox-field span{ order:2; font-weight:400; }
+  input,select,textarea{
+    font-family:inherit; font-size:16px; padding:9px; border:1px solid var(--line); border-radius:4px;
+    background:#fff; color:var(--ink); width:100%;
+  }
+  input[readonly]{ background:#F1EDE0; color:var(--muted); }
+  textarea{ resize:vertical; min-height:52px; }
+  input:focus,select:focus,textarea:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .input-with-action{ display:flex; gap:6px; align-items:stretch; }
+  .input-with-action input{ min-width:0; }
+  .mini-btn{ width:auto; white-space:nowrap; min-height:38px; padding:8px 12px; border:1px solid var(--line); border-radius:4px; background:#fff; color:var(--accent-ink); cursor:pointer; }
+  .privacy-note,.field-note{ color:var(--muted); font-size:.81rem; margin:4px 0 0; }
+  .local-only-box{ background:#F1F5EC; border:1px solid #CBD8C5; border-radius:6px; padding:12px 14px; margin-top:4px; }
+  .compact-details{ border-top:1px dashed var(--line); margin-top:12px; padding-top:8px; }
+  .compact-details summary{ color:var(--accent-ink); cursor:pointer; font-weight:600; font-size:.88rem; }
+  .compact-details[open] summary{ margin-bottom:10px; }
+  .person-result{ border-top:1px dashed var(--line); margin-top:8px; padding-top:10px; }
+  .person-result-title{ color:var(--accent-ink); font-weight:600; font-size:.84rem; margin:0 0 8px; }
+  .person-find{ border-top:1px dashed var(--line); margin-top:8px; padding-top:10px; }
+  .person-find-title{ color:var(--ok); font-weight:600; font-size:.84rem; margin:0 0 8px; }
+  .form-message{ min-height:1.2em; color:var(--danger); font-size:.88rem; margin-top:4px; }
+
+  .field-block{ margin-bottom:12px; }
+  .field-title{ display:block; font-weight:600; font-size:.88rem; margin-bottom:6px; }
+  .chip-group{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{
+    border:1px solid var(--line); background:#fff; border-radius:999px; padding:8px 14px;
+    min-height:36px; display:inline-flex; align-items:center;
+    font-size:.85rem; cursor:pointer; color:var(--muted);
+  }
+  .chip.selected{ background:var(--ink); border-color:var(--ink); color:#fff; }
+
+  .repeater-item{ border:1px solid var(--line); border-radius:6px; padding:12px 12px 2px; margin-bottom:10px; position:relative; background:#FEFDFA; }
+  .remove-row{
+    position:absolute; top:4px; right:4px; width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+    border:none; background:none; color:var(--danger); font-size:1.3rem; cursor:pointer; line-height:1; border-radius:50%;
+  }
+  .remove-row:active{ background:rgba(168,64,44,.12); }
+  .add-row{ background:none; border:1px dashed var(--muted); color:var(--muted); border-radius:5px; padding:6px 12px; cursor:pointer; font-size:.85rem; }
+  .add-row:hover{ border-color:var(--ink); color:var(--ink); }
+
+  .form-actions{ display:flex; gap:10px; margin-top:6px; flex-wrap:wrap; }
+  button.primary{
+    background:var(--accent); color:#fff; border:none; border-radius:5px; padding:10px 20px;
+    font-weight:600; cursor:pointer; font-size:.94rem;
+  }
+  button.primary:hover{ background:var(--accent-ink); }
+  button.secondary{ background:none; border:1px solid var(--line); color:var(--muted); border-radius:5px; padding:10px 16px; cursor:pointer; }
+
+  /* --- Schrittweise Formularführung --- */
+  .stepper{ display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap; }
+  .step-btn{ flex:1; min-width:130px; border:1px solid var(--line); background:#EFEAD9; color:var(--muted); border-radius:6px; padding:9px 10px; font:inherit; font-size:.82rem; cursor:pointer; text-align:left; }
+  .step-btn strong{ display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .step-btn.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .step-btn.active strong{ color:rgba(255,255,255,.85); }
+  .step-btn.done strong::after{ content:' ✓'; }
+  .step-page{ display:none; }
+  .step-page.active{ display:block; animation:fadein .15s ease; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(3px);} to{opacity:1; transform:none;} }
+  .step-nav-actions{ display:flex; justify-content:space-between; gap:10px; margin-top:18px; padding-top:14px; border-top:1px dashed var(--line); flex-wrap:wrap; }
+  .step-nav-actions .right{ display:flex; gap:10px; flex-wrap:wrap; }
+  @media (max-width:640px){
+    /* Auf dem Handy bleibt die Aktionsleiste am unteren Bildschirmrand sichtbar,
+       damit „Weiter“/„Eintrag speichern“ nicht erst herangescrollt werden muss. */
+    .step-nav-actions{
+      position:sticky; bottom:0; z-index:5;
+      background:var(--paper); margin:18px -22px -22px; padding:12px 22px calc(12px + env(safe-area-inset-bottom));
+      border-top:1px solid var(--line); border-radius:0 0 6px 6px; box-shadow:0 -4px 10px rgba(35,41,34,.08);
+    }
+    .step-nav-actions .right{ width:100%; }
+    .step-nav-actions .right button{ flex:1; min-width:0; }
+    #btn-step-prev{ flex:none; }
+  }
+
+  /* --- Online-Kennzeichnung --- */
+  .badge-online{ display:inline-block; background:#E8F0FA; color:#2A5D8C; border:1px solid #C4D9EE; border-radius:999px; padding:2px 9px; font-size:.72rem; font-weight:600; vertical-align:middle; margin-left:6px; }
+  .weather-online-box{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:#F4F0E4; border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin:0 0 14px; }
+  .weather-online-box .hint{ flex:1; min-width:200px; }
+  .tactic-box{ background:#EFF6EE; border:1px solid #CBE0C6; border-left:4px solid var(--ok); border-radius:6px; padding:10px 14px; margin-top:12px; font-size:.86rem; }
+  .tactic-box h4{ margin:0 0 6px; font-size:.82rem; text-transform:uppercase; letter-spacing:.03em; color:var(--ok); }
+  .tactic-box .disclaimer{ display:block; margin-top:6px; color:var(--muted); font-size:.78rem; font-style:italic; }
+
+  /* --- Tagesfortsetzung --- */
+  .continue-banner{ background:#FBF3EA; border:1px solid var(--accent); border-radius:8px; padding:14px 16px; margin-bottom:18px; }
+  .continue-banner .chips{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .continue-banner .chips button{ border:1px solid var(--accent); background:#fff; color:var(--accent-ink); border-radius:999px; padding:6px 14px; font:inherit; font-size:.85rem; cursor:pointer; }
+  .continue-banner .chips button:hover{ background:var(--accent); color:#fff; }
+
+  /* --- Eintragsliste --- */
+  .entries-head{ display:flex; justify-content:space-between; align-items:center; margin:16px 0 10px; }
+  .entries-head h3{ margin:0; font-size:1rem; color:var(--muted); font-weight:500; }
+  .entry{ border:1px solid var(--line); border-radius:6px; margin-bottom:8px; overflow:hidden; }
+  .entry-summary{ display:flex; justify-content:space-between; align-items:center; padding:10px 14px; cursor:pointer; background:#fff; gap:10px; flex-wrap:wrap; }
+  .entry-summary .meta{ display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+  .entry-summary .date{ font-family:'IBM Plex Mono',monospace; font-weight:500; }
+  .entry-summary .place{ color:var(--muted); font-size:.88rem; }
+  .entry-summary .badge{ font-size:.78rem; padding:2px 8px; border-radius:999px; background:var(--tab-color,#eee); color:#fff; }
+  .entry-detail{ display:none; padding:14px; border-top:1px dashed var(--line); background:#FEFDF8; font-size:.88rem; }
+  .entry.open .entry-detail{ display:block; }
+  .entry-detail dl{ display:grid; grid-template-columns:180px 1fr; gap:4px 10px; margin:0 0 12px; }
+  .entry-detail dt{ color:var(--muted); }
+  .entry-detail dd{ margin:0; }
+  .entry-detail h4{ margin:14px 0 6px; font-size:.85rem; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); }
+  .del-btn{ background:none; border:none; color:var(--danger); cursor:pointer; font-size:.82rem; }
+  .edit-btn{ background:none; border:none; color:var(--accent-ink); cursor:pointer; font-size:.82rem; text-decoration:underline; }
+  .empty-hint{ color:var(--muted); font-style:italic; font-size:.9rem; padding:10px 0; }
+  .exercise-info{ background:#F4F0E4; border:1px solid var(--line); border-radius:4px; padding:8px 10px; font-size:.82rem; color:var(--muted); margin:2px 0 10px; }
+  .exercise-info:empty{ display:none; }
+  .entry-actions{ display:flex; gap:14px; align-items:center; }
+  .edit-banner{ background:#FBF3EA; border:1px solid var(--accent); border-radius:6px; padding:10px 14px; margin-bottom:16px; font-size:.9rem; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+
+  .spontan-box textarea{ min-height:220px; font-size:1rem; }
+  .spontan-note{ background:#F1EDE0; border-left:3px solid var(--c-spontan); padding:10px 14px; border-radius:4px; color:var(--muted); font-size:.87rem; margin-bottom:14px; }
+  .spontan-save-row{ display:flex; gap:10px; align-items:center; margin-top:12px; flex-wrap:wrap; }
+  .place-tools{ background:#F4F0E4; border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin:-6px 0 18px; }
+  .place-tools .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .place-tools .row label{ display:flex; gap:7px; align-items:center; color:var(--ink); font-size:.87rem; }
+  .place-tools input[type="checkbox"]{ width:auto; }
+  @media (max-width:480px){
+    /* Lange Beschriftungen (z. B. „Aktuelle Angaben jetzt als Gebiet merken“)
+       auf sehr schmalen Handys umbrechen lassen statt seitlich abzuschneiden. */
+    .place-tools .row{ flex-direction:column; align-items:stretch; }
+    .place-tools .row label{ flex-wrap:wrap; }
+    .mini-btn{ white-space:normal; text-align:left; }
+  }
+  .place-status{ color:var(--muted); font-size:.81rem; min-height:1.2em; margin-top:6px; }
+  .place-badge{ display:inline-block; padding:2px 7px; border-radius:999px; background:#E5ECDF; color:var(--ok); font-size:.78rem; font-weight:600; }
+  .previous-result{ background:#F1F5EC; border:1px solid #CBD8C5; border-left:4px solid var(--ok); border-radius:6px; padding:11px 13px; margin:0 0 14px; }
+  .previous-result .head{ display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:7px; }
+  .previous-result .head strong{ font-family:'Roboto Slab',serif; }
+  .previous-result .head span{ color:var(--muted); font-size:.82rem; }
+  .previous-result dl{ display:grid; grid-template-columns:minmax(130px,35%) 1fr; gap:3px 10px; margin:0; font-size:.84rem; }
+  .previous-result dt{ color:var(--muted); }
+  .previous-result dd{ margin:0; white-space:pre-wrap; }
+  .previous-result .planned{ margin-top:8px; padding-top:8px; border-top:1px dashed #B8C7B1; font-size:.84rem; }
+  .rating-delta{ margin-top:9px; padding:7px 9px; border-radius:4px; background:#fff; font-size:.84rem; font-weight:600; }
+  .rating-delta.better{ color:var(--ok); }
+  .rating-delta.worse{ color:var(--danger); }
+  @media (max-width:520px){ .previous-result dl{ grid-template-columns:1fr; gap:1px; }.previous-result dd{ margin-bottom:5px; } }
+
+  /* --- Trainingstage-Ansicht --- */
+  .day-card{ border:1px solid var(--line); border-radius:8px; margin-bottom:14px; background:var(--paper); overflow:hidden; }
+  .day-head{ display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; gap:12px; flex-wrap:wrap; background:#F4F0E4; }
+  .day-head .date{ font-family:'Roboto Slab',Georgia,serif; font-weight:700; }
+  .day-head .summary{ color:var(--muted); font-size:.86rem; }
+  .day-head .chips-inline{ display:flex; gap:5px; flex-wrap:wrap; }
+  .day-head .chips-inline span{ font-size:.72rem; padding:2px 8px; border-radius:999px; color:#fff; }
+  .day-body{ display:none; padding:4px 16px 16px; }
+  .day-card.open .day-body{ display:block; }
+
+  /* --- Auswertungs-Ansicht --- */
+  .analysis-summary{ background:var(--paper); border:1px solid var(--accent); border-radius:8px; padding:16px 18px; margin-bottom:18px; }
+  .analysis-summary h3{ margin:0 0 10px; }
+  .analysis-summary ol{ margin:0; padding-left:20px; }
+  .analysis-summary li{ margin-bottom:6px; }
+  .analysis-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+  .analysis-card{ border:1px solid var(--line); border-radius:8px; padding:14px 16px; background:var(--paper); }
+  .analysis-card h4{ margin:0 0 6px; display:flex; align-items:center; gap:8px; }
+  .analysis-card .dot{ width:10px;height:10px;border-radius:50%; flex:none; }
+  .analysis-card dl{ display:grid; grid-template-columns:auto 1fr; gap:3px 8px; font-size:.85rem; margin:8px 0; }
+  .analysis-card dt{ color:var(--muted); }
+  .analysis-card .trend{ font-weight:600; }
+  .analysis-note{ color:var(--muted); font-size:.8rem; font-style:italic; margin-top:14px; }
+  .priority-high{ border-left:4px solid var(--danger); }
+  .priority-med{ border-left:4px solid var(--accent); }
+  .priority-low{ border-left:4px solid var(--ok); }
+
+  /* --- Tastenkürzel-Fenster --- */
+  .shortcuts-pop{ position:fixed; inset:0; background:rgba(35,41,34,.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .shortcuts-pop.open{ display:flex; }
+  .shortcuts-pop .box{ background:var(--paper); border-radius:10px; padding:22px 24px; max-width:420px; width:100%; max-height:80vh; overflow:auto; }
+  .shortcuts-pop table{ width:100%; border-collapse:collapse; font-size:.86rem; }
+  .shortcuts-pop td{ padding:5px 4px; border-bottom:1px solid var(--line); }
+  .shortcuts-pop td:first-child{ font-family:ui-monospace,monospace; white-space:nowrap; color:var(--accent-ink); }
+
+/* v1.1 Stabilität + RHS Exchange */
+.exchange-card{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.exchange-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.exchange-status{font-size:.9rem;margin-top:8px}
+</style>
+<style id="ux-compact-style">
+/* UX-Kompakt 2026-09: reine Darstellung, keine Daten-/Exchange-Aenderung */
+:root{--ux-content-max:980px}
+main,.app,#content{max-width:var(--ux-content-max);margin-left:auto;margin-right:auto}
+.ux-help-details{margin:.75rem 0 1rem;border:1px solid rgba(127,127,127,.28);border-radius:12px;padding:.1rem .8rem;background:rgba(127,127,127,.045)}
+.ux-help-details>summary{cursor:pointer;font-weight:700;padding:.75rem .1rem;line-height:1.3}
+.ux-help-details>summary::marker{font-size:.9em}
+.ux-help-details[open]>summary{margin-bottom:.35rem}
+.ux-page-hint{font-size:.92rem;opacity:.82;line-height:1.45;margin:.35rem 0 .8rem}
+@media(max-width:700px){main,.app,#content{max-width:100%}.ux-help-details{border-radius:10px;margin:.6rem 0;padding:.05rem .65rem}h1{line-height:1.15}h2{line-height:1.2}}
+</style>
+</head>
+<body>
+
+<header class="app-head">
+  <div class="app-brand">
+    <img class="app-logo" src="icons/icon-192.png" width="92" height="92" alt="Trainingstagebuch Fläche und Trümmer: Pfote, Kompass und offenes Buch">
+    <div class="app-brand-text">
+      <h1>Trainingstagebuch Rettungshundearbeit <small>v2.9.1</small></h1>
+      <p class="app-brand-tag">Fläche · Trümmer · ergänzendes Training</p>
+    </div>
+  </div>
+  <p class="sub">Dokumentation nach Trainingsbereich – für Ausbildung, Auswertung und Einsatzvorbereitung. Mehrere Übungsblöcke am selben Tag, Trainingstage im Überblick und eine automatische Auswertung.</p>
+  <p class="sub" style="margin-top:4px;">Nach dem ersten vollständigen Laden über den App-Link auch offline nutzbar. Wetter und Ortsnamenabruf benötigen Internet; die Standortermittlung benötigt deine Freigabe.</p>
+</header>
+
+<div class="wrap">
+
+  <div class="storage-card" id="storage-card"></div>
+  <input type="file" id="file-load-input" accept="application/json" style="display:none">
+  <div class="exchange-card" id="rhs-exchange-card">
+    <strong>RH App-Familie · Datenaustausch</strong>
+    <p class="hint">Optionaler, nachholbarer Austausch. Andere RH-Apps müssen weder installiert noch gleichzeitig aktuell sein. Ältere Feldstände überschreiben keine neueren.</p>
+    <div class="exchange-actions">
+      <button class="secondary" id="btn-rhs-export" type="button">Teamdaten austauschen · Export</button>
+      <button class="secondary" id="btn-rhs-import" type="button">RHS-Exchange importieren</button>
+    </div>
+    <input type="file" id="rhs-exchange-input" accept="application/json" style="display:none">
+    <div class="exchange-status" id="rhs-exchange-status" role="status"></div>
+  </div>
+
+  <div class="profile-card" id="profile-card">
+    <div class="summary" id="profile-summary"></div>
+    <button class="btn-link" id="btn-edit-profile" type="button">Team-Daten bearbeiten</button>
+    <div class="profile-edit" id="profile-edit">
+      <div class="grid2">
+        <label class="field"><span>Hundeführer/in</span><input id="p-fuehrer" type="text"></label>
+        <label class="field"><span>Staffel / Standort</span><input id="p-staffel" type="text"></label>
+        <label class="field"><span>Name des Hundes</span><input id="p-hund" type="text"></label>
+        <label class="field"><span>Rasse</span><input id="p-rasse" type="text"></label>
+        <label class="field"><span>Geburtsdatum des Hundes</span><input id="p-geb" type="date"></label>
+        <label class="field"><span>RH-Sparte(n) für App-Austausch</span><input id="p-disciplines" type="text" placeholder="z. B. Fläche, Trümmer, Mantrailing"></label>
+        <label class="field"><span>Anzeigeart für App-Austausch</span><input id="p-indication" type="text" placeholder="z. B. Verbellen, Rückverweisen"></label>
+      </div>
+      <div class="local-only-box">
+        <label class="field"><span>Heimatadresse (nur auf diesem Gerät)</span><input id="p-home-address" type="text" autocomplete="street-address" placeholder="Straße, Hausnummer, PLZ Ort"></label>
+        <div class="form-actions">
+          <button class="secondary" id="btn-set-home-position" type="button">Aktuellen Standort als Heimatpunkt speichern</button>
+          <button class="btn-link" id="btn-clear-home" type="button">Heimatdaten löschen</button>
+        </div>
+        <p class="privacy-note" id="home-position-status">Die Adresse und der Heimatpunkt bleiben ausschließlich in diesem Browser. Sie werden weder synchronisiert noch in Sicherungs- oder Excel-Dateien geschrieben. Für die automatische Entfernungsberechnung den Heimatpunkt einmal zu Hause setzen.</p>
+        </div>
+      <label class="field"><span>Ausbildungsstand je Sparte</span>
+        <textarea id="p-stand" rows="2" placeholder="z. B. Flächensuche: fortgeschritten – Trümmersuche: Grundausbildung – Gehorsam: –"></textarea>
+      </label>
+      <div class="form-actions">
+        <button class="primary" id="btn-save-profile" type="button">Speichern</button>
+        <button class="secondary" id="btn-cancel-profile" type="button">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="secondary" id="btn-export-all" type="button">Excel-Auswertung (alle Bereiche)</button>
+    <span class="hint" id="export-status"></span>
+  </div>
+
+  <div class="main-nav" id="main-nav"></div>
+
+  <div id="app-view"></div>
+
+</div>
+
+<div class="shortcuts-pop" id="legal-pop" role="dialog" aria-modal="true" aria-labelledby="legal-title">
+  <div class="box" style="max-width:560px">
+    <h3 id="legal-title" style="margin-top:0">Impressum, Datenschutz und Urheberrecht</h3>
+    <details open><summary><strong>Impressum</strong></summary>
+      <p>Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG):<br>Michaela Weiße<br>Brunnenstraße 6<br>34369 Hofgeismar</p>
+      <p>Kontakt: E-Mail <a href="mailto:mweisse@outlook.de">mweisse@outlook.de</a> · Telefon +49 171 408 2366</p>
+      <p>Verantwortlich für den Inhalt nach § 18 Abs. 2 Medienstaatsvertrag (MStV): Michaela Weiße, Anschrift wie oben.</p>
+      <p>Es handelt sich um ein privates, nicht kommerzielles Angebot. Es ist keine offizielle Anwendung des Deutschen Roten Kreuzes.</p>
+    </details>
+    <details><summary><strong>Datenschutzhinweise</strong></summary>
+      <p><strong>Verantwortliche:</strong> Michaela Weiße, Anschrift und Kontakt siehe Impressum.</p>
+      <p><strong>Speicherung in der App:</strong> Alle Einträge, Profile und Einstellungen werden ausschließlich lokal im Browser dieses Geräts gespeichert (localStorage). Sie werden nicht an die Anbieterin übermittelt. Sicherungs- und Exportdateien entstehen nur auf Ihre Veranlassung und verbleiben bei Ihnen.</p>
+      <p><strong>Bereitstellung über GitHub Pages:</strong> Die App wird über GitHub Pages (GitHub, Inc., USA) bereitgestellt. Beim Aufruf verarbeitet GitHub technisch notwendige Verbindungsdaten, insbesondere die IP-Adresse, in Server-Protokollen. Näheres in der <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">Datenschutzerklärung von GitHub</a>.</p>
+      <p><strong>Optionale Online-Funktionen:</strong> Nur wenn Sie „Wetter online abrufen“ auslösen, fragt der Browser nach Ihrem Standort. Die Koordinaten werden dann an Open-Meteo (Wetterdaten) und BigDataCloud (Ortsbezeichnung) übermittelt. Ohne diese Funktion findet keine Übermittlung statt.</p>
+      <p>Die App setzt keine Cookies und verwendet keine Analyse- oder Werbedienste.</p>
+      <p><strong>Ihre Rechte:</strong> Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Widerspruch und Datenübertragbarkeit nach der DSGVO. Lokale Daten können Sie jederzeit selbst löschen, etwa über die Browsereinstellungen. Beschwerden sind bei einer Datenschutz-Aufsichtsbehörde möglich, zum Beispiel beim Hessischen Beauftragten für Datenschutz und Informationsfreiheit.</p>
+    </details>
+    <details><summary><strong>Urheberrecht und Haftung</strong></summary>
+      <p>© 2026 Michaela Weiße. Alle Rechte vorbehalten. Programmcode, Texte und Gestaltung dürfen ohne Zustimmung nicht vervielfältigt oder verändert veröffentlicht werden.</p>
+      <p>Wetterdaten: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).</p>
+      <p>Die App ist eine Dokumentations- und Orientierungshilfe. Sie ersetzt keine fachliche Ausbildung, keine Anweisung der Ausbilder oder der Einsatzleitung und keine tierärztliche oder medizinische Beurteilung. Für Richtigkeit und Vollständigkeit wird keine Gewähr übernommen.</p>
+    </details>
+    <div class="actions" style="margin-top:14px"><button class="secondary" id="btn-close-legal" type="button">Schließen</button></div>
+  </div>
+</div>
+<div class="shortcuts-pop" id="shortcuts-pop">
+  <div class="box">
+    <h3 style="margin-top:0;">Tastenkürzel</h3>
+    <table>
+      <tr><td>Alt + 1</td><td>Ansicht „Training erfassen“</td></tr>
+      <tr><td>Alt + 2</td><td>Ansicht „Trainingstage“</td></tr>
+      <tr><td>Alt + 3</td><td>Ansicht „Auswertung“</td></tr>
+      <tr><td>Alt + →</td><td>Nächster Schritt im Formular</td></tr>
+      <tr><td>Alt + ←</td><td>Vorheriger Schritt im Formular</td></tr>
+      <tr><td>Strg/Cmd + Enter</td><td>Eintrag speichern (auf letztem Schritt)</td></tr>
+      <tr><td>Esc</td><td>Bearbeitung abbrechen / dieses Fenster schließen</td></tr>
+      <tr><td>Alt + H</td><td>Dieses Fenster ein-/ausblenden</td></tr>
+    </table>
+    <div class="form-actions">
+      <button class="secondary" id="btn-close-shortcuts" type="button">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DATENMODELL & KONFIGURATION
+   Neue Trainingsart fest einbauen: hier in DISCIPLINE_META ergänzen.
+   Neue Parameter: einfach ein weiteres .field / Chip-Group / Repeater
+   in der passenden renderSection()-Funktion ergänzen – die Erfassung
+   und Anzeige ist generisch und braucht dafür keine Anpassung.
+
+   Layout: jeder Trainingseintrag wird in Schritten (Rahmen & Wetter /
+   Ablauf & Bedingungen / Ergebnis / Notizen & Abschluss) erfasst, damit
+   nicht mehr durch ein sehr langes Formular gescrollt werden muss.
+   Mehrere Übungsblöcke am selben Tag bleiben technisch einzelne
+   Einträge (wie bisher – bestehende Sicherungen bleiben kompatibel),
+   werden aber in der Ansicht „Trainingstage“ automatisch zu
+   Tageskarten zusammengefasst, und nach dem Speichern kann direkt der
+   nächste Block desselben Tages angelegt werden.
+   ============================================================ */
+
+const LOCAL_STATE_KEY = 'rhs-trainingstagebuch-state-v2';
+const PRIVATE_HOME_KEY = 'rhs-trainingstagebuch-private-home-v1';
+const RESULT_SCALE = ['sehr gut','gut','befriedigend','ausreichend','mangelhaft'];
+const HIDDEN_LEGACY_BASIC_LABELS = new Set(['Gesamtdauer','Person gefunden','Zeit bis Fund']);
+const RESULT_SECTION_KEYS = ['resultSearch','resultIndication','resultGeneric','resultPhysio'];
+
+const DISCIPLINE_META = {
+  flaechensuche:  { label:'Flächensuche',              color:'var(--c-flaechensuche)', sections:['weather','terrain','helpers','resultSearch'] },
+  anzeige:        { label:'Anzeigeverhalten',          color:'var(--c-anzeige)',       sections:['weather','terrain','helpers','indication','resultIndication'] },
+  gehorsam:       { label:'Gehorsam',                  color:'var(--c-gehorsam)',      sections:['weather','obedience','resultGeneric'] },
+  gewandtheit:    { label:'Gewandtheit / Gerätearbeit',color:'var(--c-gewandtheit)',   sections:['weather','agility','resultGeneric'] },
+  truemmersuche:  { label:'Trümmersuche',              color:'var(--c-truemmersuche)', sections:['weather','terrain','helpers','rubble','resultSearch'] },
+  physio:         { label:'Physio & Fitness',              color:'var(--c-physio)',        sections:['weather','physioinfo','physiowarmup','physiomain','physiocooldown','resultPhysio'] },
+  alltagstraining:{ label:'Alltagstraining',               color:'var(--c-alltag)',        sections:['weather','alltagsuebungen','resultGeneric'] },
+};
+
+let profile = {
+  fuehrer:'', staffel:'',
+  hund:'', rasse:'', geb:'',
+  stand:'',
+  disciplines:[], indicationType:'',
+  teamId:'', exchangeMeta:{revision:0,updatedAt:'',fieldRevisions:{},fieldUpdatedAt:{}}
+};
+let customDisciplines = [];   // [{id,label,color}]
+let entries = [];             // aus dem Speicher geladen
+let trainingPlaces = [];      // lokal gespeicherte Gebietsvorlagen
+let homeworkInbox = [];       // Aufgaben aus dem RH Ausbildungsbegleiter
+let activeTab = 'flaechensuche';
+let spontanDraft = '';
+let editingEntryId = null; // gesetzt, solange ein bestehender Eintrag bearbeitet wird
+let dirtySinceSave = false; // im Dateimodus: gibt es ungesicherte Änderungen?
+let lastFileSaveTime = null;
+let privateHome = { address:'', lat:null, lon:null };
+let pendingHomeCoords = null;
+let mainView = 'erfassen'; // 'erfassen' | 'tage' | 'auswertung'
+let currentStep = 0;
+let lastSavedContext = null; // für „weiteren Block am selben Tag anlegen“
+let pendingHomeworkSource = null; // eindeutige Rückverknüpfung zum Ausbildungsbegleiter
+
+const $  = (sel,root=document)=>root.querySelector(sel);
+const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+const uid = ()=> Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const RHS_EXCHANGE_FORMAT='rhs-exchange', RHS_EXCHANGE_VERSION=2, RHS_APP_ID='rh-trainingstagebuch';
+const RHS_PROFILE_MAP={handler:'fuehrer',dogName:'hund',dogBirthDate:'geb',dogBreed:'rasse',disciplines:'disciplines',indicationType:'indicationType'};
+function rhsNow(){return new Date().toISOString();}function rhsUid(prefix='rhs'){try{return prefix+'-'+crypto.randomUUID()}catch(e){return prefix+'-'+uid()}}
+function ensureProfileExchange(){if(!profile.teamId)profile.teamId='rhs-'+uid();if(!profile.exchangeMeta||typeof profile.exchangeMeta!=='object')profile.exchangeMeta={revision:0,updatedAt:'',fieldRevisions:{},fieldUpdatedAt:{}};const m=profile.exchangeMeta;m.fieldRevisions=m.fieldRevisions||{};m.fieldUpdatedAt=m.fieldUpdatedAt||{};m.instanceId=m.instanceId||rhsUid('instance');m.processedPackages=Array.isArray(m.processedPackages)?m.processedPackages.slice(-200):[];Object.values(RHS_PROFILE_MAP).forEach(k=>{});Object.keys(RHS_PROFILE_MAP).forEach(f=>{if(!Number.isFinite(Number(m.fieldRevisions[f])))m.fieldRevisions[f]=0});return m;}
+function markProfileField(field){const m=ensureProfileExchange(),n=rhsNow();m.revision=Number(m.revision||0)+1;m.updatedAt=n;m.fieldRevisions[field]=Number(m.fieldRevisions[field]||0)+1;m.fieldUpdatedAt[field]=n;}
+function makeRhsTeamPackage(){const m=ensureProfileExchange(),data={},fieldMeta={};Object.entries(RHS_PROFILE_MAP).forEach(([f,k])=>{let v=profile[k]??'';if(f==='disciplines'&&!Array.isArray(v))v=String(v||'').split(/[,;/]+/).map(x=>x.trim()).filter(Boolean);data[f]=v;fieldMeta[f]={revision:Number(m.fieldRevisions[f]||0),updatedAt:m.fieldUpdatedAt[f]||'',sourceApp:RHS_APP_ID,sourceInstanceId:m.instanceId}});return{rhsFormat:RHS_EXCHANGE_FORMAT,schemaVersion:2,packageType:'bundle',packageId:rhsUid('pkg'),createdAt:rhsNow(),source:{app:RHS_APP_ID,instanceId:m.instanceId},records:[{type:'team',id:profile.teamId,data,fieldMeta}]};}
+function downloadRhs(obj,name){const b=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500);}
+function rhsStatus(t,bad=false){const e=$('#rhs-exchange-status');if(e){e.textContent=t;e.style.color=bad?'var(--danger)':'';}}
+function normalizeRhsPackage(pkg){if(!pkg||pkg.rhsFormat!==RHS_EXCHANGE_FORMAT)throw new Error('Keine RHS-Exchange-Datei.');if(Number(pkg.schemaVersion)>2)throw new Error('Neuere RHS-Exchange-Version noch nicht unterstützt.');if(Number(pkg.schemaVersion)===2&&Array.isArray(pkg.records))return pkg;const x=pkg.payload?.team;if(!x)throw new Error('Keine Team-Stammdaten enthalten.');const f=x.fields||{},v=(...ks)=>{for(const k of ks)if(f[k]&&f[k].value!==undefined)return f[k].value;return''},mm=(...ks)=>{for(const k of ks)if(f[k])return{revision:Number(f[k].revision||0),updatedAt:f[k].updatedAt||''};return{revision:0}};return{rhsFormat:RHS_EXCHANGE_FORMAT,schemaVersion:2,packageId:pkg.packageId||'',createdAt:pkg.createdAt||'',source:{app:pkg.sourceApp||'legacy-v1'},records:[{type:'team',id:x.teamId,data:{handler:v('handler'),dogName:v('dog','dogName'),dogBirthDate:v('geburtsdatum','dogBirthDate'),dogBreed:v('rasseFrei','dogBreed')},fieldMeta:{handler:mm('handler'),dogName:mm('dog','dogName'),dogBirthDate:mm('geburtsdatum','dogBirthDate'),dogBreed:mm('rasseFrei','dogBreed')}}]};}
+function mergeRhsTeam(raw){const pkg=normalizeRhsPackage(raw),imp=pkg.records.find(r=>r.type==='team');if(!imp)throw new Error('Keine Team-Stammdaten enthalten.');const m=ensureProfileExchange();if(pkg.packageId&&m.processedPackages.includes(pkg.packageId))return{accepted:0,ignored:0,conflicts:0,duplicate:true};if(profile.teamId!==imp.id){const same=String(profile.hund||'').trim().toLowerCase()===String(imp.data?.dogName||'').trim().toLowerCase()&&String(profile.fuehrer||'').trim().toLowerCase()===String(imp.data?.handler||'').trim().toLowerCase();if(!same&&!confirm('Andere Team-ID. Gehören beide Profile zum selben realen Team und sollen zusammengeführt werden?'))throw new Error('Import abgebrochen.');if(imp.id)profile.teamId=imp.id;}let accepted=0,ignored=0,conflicts=0;Object.entries(RHS_PROFILE_MAP).forEach(([f,k])=>{if(!(f in (imp.data||{})))return;let iv=imp.data[f];if(f==='disciplines'&&!Array.isArray(iv))iv=String(iv||'').split(/[,;/]+/).map(x=>x.trim()).filter(Boolean);const im=(imp.fieldMeta||{})[f]||{revision:0},ir=Number(im.revision||0),lr=Number(m.fieldRevisions[f]||0),lv=profile[k]??'';if(JSON.stringify(iv)===JSON.stringify(lv)){ignored++;return;}if(!lv||ir>lr){profile[k]=iv??'';m.fieldRevisions[f]=ir;m.fieldUpdatedAt[f]=im.updatedAt||pkg.createdAt||'';accepted++;}else if(ir<lr)ignored++;else{conflicts++;if(confirm('Konflikt bei „'+f+'“:\n\nAktuell: '+String(lv||'–')+'\nImport: '+String(iv||'–')+'\n\nImportwert übernehmen?')){profile[k]=iv??'';markProfileField(f);accepted++;}}});if(pkg.packageId)m.processedPackages.push(pkg.packageId);return{accepted,ignored,conflicts,duplicate:false};}
+
+const opts = arr => arr.map(o=>`<option>${o}</option>`).join('');
+const resultOpts = arr => `<option value="">– bitte wählen –</option>${opts(arr)}`;
+
+function allDisciplines(){
+  const custom = {};
+  customDisciplines.forEach(c=> custom[c.id] = { label:c.label, color:c.color, sections:['weather','resultGeneric'] });
+  return Object.assign({}, DISCIPLINE_META, custom);
+}
+
+function safeLocalGet(key){
+  try{ return localStorage.getItem(key); }catch(e){ return null; }
+}
+function safeLocalSet(key, value){
+  try{ localStorage.setItem(key, value); return true; }catch(e){ return false; }
+}
+function safeLocalRemove(key){
+  try{ localStorage.removeItem(key); return true; }catch(e){ return false; }
+}
+function loadPrivateHome(){
+  try{
+    const raw = safeLocalGet(PRIVATE_HOME_KEY);
+    if(raw) privateHome = Object.assign({address:'',lat:null,lon:null}, JSON.parse(raw));
+  }catch(e){ privateHome = {address:'',lat:null,lon:null}; }
+}
+function savePrivateHome(){
+  safeLocalSet(PRIVATE_HOME_KEY, JSON.stringify(privateHome));
+}
+function saveLocalState(){
+  ensureProfileExchange();
+  return safeLocalSet(LOCAL_STATE_KEY, JSON.stringify({savedAt:new Date().toISOString(), profile, customDisciplines, trainingPlaces, homeworkInbox, entries}));
+}
+function loadLocalState(){
+  try{
+    const raw = safeLocalGet(LOCAL_STATE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    if(data.profile) profile = data.profile;
+    if(Array.isArray(data.customDisciplines)) customDisciplines = data.customDisciplines;
+    if(Array.isArray(data.entries)) entries = data.entries;
+    if(Array.isArray(data.homeworkInbox)) homeworkInbox = data.homeworkInbox;
+    const hadPlaceTemplates=Array.isArray(data.trainingPlaces);
+    if(hadPlaceTemplates) trainingPlaces = data.trainingPlaces;
+    else trainingPlaces = placesFromExistingEntries(entries);
+    entries.sort((a,b)=> (b.timestamp||'').localeCompare(a.timestamp||''));
+    if(!hadPlaceTemplates && trainingPlaces.length) saveLocalState();
+  }catch(e){ console.error('Lokale Daten konnten nicht geladen werden', e); }
+}
+
+/* ============================================================
+   PERSISTENZ
+   ============================================================ */
+async function persistProfile(){
+  dirtySinceSave = true; saveLocalState(); renderStorageBar();
+}
+async function persistCustomDisciplines(){
+  dirtySinceSave = true; saveLocalState(); renderStorageBar();
+}
+async function persistEntry(entry){
+  dirtySinceSave = true;
+  const nextEntries = editingEntryId ? entries.map(e=>e.id===editingEntryId ? entry : e) : [entry, ...entries];
+  const previous = entries; entries = nextEntries;
+  const ok = saveLocalState();
+  if(!ok) entries = previous;
+  renderStorageBar();
+  return ok;
+}
+async function deleteEntryStorage(id){
+  dirtySinceSave = true;
+  entries = entries.filter(e=>e.id!==id);
+  const ok = saveLocalState();
+  renderStorageBar();
+  return ok;
+}
+
+/* ============================================================
+   SPEICHERORT: ausschließlich privat auf diesem Gerät
+   ============================================================ */
+function renderStorageBar(){
+  const el = $('#storage-card');
+  const savedTxt = lastFileSaveTime ? `externe JSON-Sicherung erstellt um ${lastFileSaveTime.toLocaleTimeString('de-DE')}` : 'noch keine externe JSON-Sicherung erstellt';
+  el.innerHTML = `<div class="storage-status-row">
+    <span>${dirtySinceSave?'<span class="dirty-dot"></span>':''}🔒 <strong>Automatisch auf diesem Gerät gespeichert</strong> · kein Konto erforderlich<br><small>${dirtySinceSave? 'Es gibt neuere Daten als in der letzten Sicherungsdatei.':savedTxt}</small></span>
+    <button class="secondary" id="btn-file-save" type="button">Externe JSON-Zwischensicherung</button>
+    <button class="secondary" id="btn-file-load" type="button">JSON-Sicherung wiederherstellen</button>
+  </div>`;
+  $('#btn-file-save').onclick = exportStateToFile;
+  $('#btn-file-load').onclick = ()=> $('#file-load-input').click();
+}
+function exportStateToFile(){
+  const now=new Date();
+  const payload = { backupFormat:'rhs-trainingstagebuch', backupVersion:7, savedAt:now.toISOString(), profile, customDisciplines, trainingPlaces, homeworkInbox, entries };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const stamp=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}`;
+  a.download = `Trainingstagebuch_JSON-Sicherung_${stamp}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  dirtySinceSave = false;
+  lastFileSaveTime = new Date();
+  renderStorageBar();
+}
+function mergeById(local, incoming){const map=new Map((local||[]).filter(x=>x&&x.id).map(x=>[x.id,x]));(incoming||[]).forEach(x=>{if(!x)return;if(!x.id){map.set('legacy-'+uid(),x);return;}const old=map.get(x.id);if(!old||String(x.geaendertAm||x.timestamp||'')>String(old.geaendertAm||old.timestamp||''))map.set(x.id,x);});return Array.from(map.values());}
+function importStateFromFile(file){
+ const reader=new FileReader();reader.onload=(ev)=>{try{const data=JSON.parse(ev.target.result);if(!data||!Array.isArray(data.entries))throw new Error('Keine gültige Trainingstagebuch-Sicherung');if(data.backupFormat&&data.backupFormat!=='rhs-trainingstagebuch')throw new Error('Falsches Sicherungsformat');
+ const choice=(prompt('Sicherung einlesen:\nE = aktuellen Datenbestand ERSETZEN\nZ = ZUSAMMENFÜHREN (empfohlen)\nA = ABBRECHEN','Z')||'A').trim().toUpperCase();if(choice==='A')return;if(!['E','Z'].includes(choice))throw new Error('Ungültige Auswahl – Import abgebrochen.');
+ if(choice==='E'){profile=data.profile||profile;customDisciplines=Array.isArray(data.customDisciplines)?data.customDisciplines:[];trainingPlaces=Array.isArray(data.trainingPlaces)?data.trainingPlaces:placesFromExistingEntries(data.entries);homeworkInbox=Array.isArray(data.homeworkInbox)?data.homeworkInbox:[];entries=data.entries;}
+ else{entries=mergeById(entries,data.entries);customDisciplines=mergeById(customDisciplines,data.customDisciplines||[]);trainingPlaces=mergeById(trainingPlaces,Array.isArray(data.trainingPlaces)?data.trainingPlaces:placesFromExistingEntries(data.entries));homeworkInbox=mergeById(homeworkInbox,data.homeworkInbox||[]);if(!profile.fuehrer&&!profile.hund&&data.profile)profile=data.profile;}
+ entries.sort((a,b)=>(b.timestamp||'').localeCompare(a.timestamp||''));if(!saveLocalState())throw new Error('Import wurde verarbeitet, konnte aber nicht lokal gespeichert werden.');dirtySinceSave=false;renderProfileSummary();renderStorageBar();render();}catch(err){console.error(err);const el=$('#storage-card');el.insertAdjacentHTML('beforeend','<p class="hint" style="color:var(--danger);">'+escapeHtml(err.message||'Datei konnte nicht gelesen werden')+'</p>');}};reader.readAsText(file);
+}
+
+/* ============================================================
+   PROFIL-UI
+   ============================================================ */
+function renderProfileSummary(){
+  const gebTxt = profile.geb ? new Date(profile.geb+'T00:00:00').toLocaleDateString('de-DE') : '–';
+  $('#profile-summary').innerHTML = `
+    <strong>${!profile.fuehrer&&!profile.hund?'Dein Team – bitte Team-Daten bearbeiten':escapeHtml(profile.fuehrer||'–')+' &amp; '+escapeHtml(profile.hund||'–')}</strong>
+    <span>${escapeHtml(profile.rasse||'')}${profile.rasse?', geb. '+gebTxt:''}${profile.staffel? ' · '+escapeHtml(profile.staffel):''}</span>`;
+}
+function fillProfileForm(){
+  $('#p-fuehrer').value = profile.fuehrer||'';
+  $('#p-staffel').value = profile.staffel||'';
+  $('#p-hund').value = profile.hund||'';
+  $('#p-rasse').value = profile.rasse||'';
+  $('#p-geb').value = profile.geb||'';
+  $('#p-stand').value = profile.stand||'';
+  $('#p-disciplines').value = Array.isArray(profile.disciplines)?profile.disciplines.join(', '):(profile.disciplines||'');
+  $('#p-indication').value = profile.indicationType||'';
+  $('#p-home-address').value = privateHome.address||'';
+  pendingHomeCoords = Number.isFinite(privateHome.lat) && Number.isFinite(privateHome.lon)
+    ? {lat:privateHome.lat, lon:privateHome.lon} : null;
+  updateHomeStatus();
+}
+function updateHomeStatus(message){
+  const el = $('#home-position-status');
+  if(!el) return;
+  if(message){ el.textContent = message; return; }
+  el.textContent = pendingHomeCoords
+    ? 'Heimatpunkt ist auf diesem Gerät hinterlegt. Adresse und Koordinaten werden nicht exportiert oder synchronisiert.'
+    : 'Die Adresse bleibt ausschließlich in diesem Browser. Für automatische Entfernungen den Heimatpunkt einmal zu Hause setzen; alternativ kann die Entfernung je Training manuell eingetragen werden.';
+}
+function requestPosition(success, statusEl){
+  if(!navigator.geolocation){ statusEl.textContent = 'Standortermittlung wird von diesem Browser nicht unterstützt.'; return; }
+  statusEl.textContent = 'Standort wird ermittelt …';
+  navigator.geolocation.getCurrentPosition(
+    p=>success({lat:p.coords.latitude, lon:p.coords.longitude}),
+    ()=>{ statusEl.textContent = 'Standort konnte nicht ermittelt werden. Bitte Standortfreigabe prüfen.'; },
+    {enableHighAccuracy:true, timeout:15000, maximumAge:60000}
+  );
+}
+$('#btn-edit-profile').onclick = ()=>{ fillProfileForm(); $('#profile-edit').classList.add('open'); };
+$('#btn-cancel-profile').onclick = ()=> $('#profile-edit').classList.remove('open');
+$('#btn-set-home-position').onclick = ()=> requestPosition(coords=>{
+  pendingHomeCoords = coords;
+  updateHomeStatus('Heimatpunkt wurde lokal vorgemerkt. Zum Übernehmen bitte noch „Speichern“ wählen.');
+}, $('#home-position-status'));
+$('#btn-clear-home').onclick = ()=>{
+  privateHome = {address:'',lat:null,lon:null}; pendingHomeCoords = null;
+  $('#p-home-address').value = ''; safeLocalRemove(PRIVATE_HOME_KEY); updateHomeStatus('Heimatadresse und Heimatpunkt wurden auf diesem Gerät gelöscht.');
+};
+$('#btn-save-profile').onclick = async ()=>{
+  const oldProfile={...profile};
+  profile = Object.assign({}, profile, {
+    fuehrer:$('#p-fuehrer').value, staffel:$('#p-staffel').value, hund:$('#p-hund').value,
+    rasse:$('#p-rasse').value, geb:$('#p-geb').value, stand:$('#p-stand').value,
+    disciplines:$('#p-disciplines').value.split(/[,;/]+/).map(x=>x.trim()).filter(Boolean), indicationType:$('#p-indication').value.trim()
+  });
+  Object.entries(RHS_PROFILE_MAP).forEach(([f,k])=>{if(JSON.stringify(oldProfile[k]??'')!==JSON.stringify(profile[k]??''))markProfileField(f);});
+  privateHome = {
+    address:$('#p-home-address').value.trim(),
+    lat:pendingHomeCoords ? pendingHomeCoords.lat : null,
+    lon:pendingHomeCoords ? pendingHomeCoords.lon : null
+  };
+  savePrivateHome();
+  await persistProfile();
+  renderProfileSummary();
+  $('#profile-edit').classList.remove('open');
+};
+
+/* ============================================================
+   HAUPTNAVIGATION & ANSICHTEN
+   ============================================================ */
+let entryInitialSnapshot='';
+function formSnapshot(){const f=$('#entry-form');if(!f)return'';return Array.from(f.querySelectorAll('input,select,textarea')).map(e=>[e.name||e.id||e.type,e.type==='checkbox'?e.checked:e.value]).join('|');}
+function captureEntrySnapshot(){entryInitialSnapshot=formSnapshot();}
+function hasUnsavedEntry(){return !!$('#entry-form')&&formSnapshot()!==entryInitialSnapshot;}
+function mayLeaveEditor(){if(hasUnsavedEntry())return confirm('In diesem Trainingsblock gibt es noch nicht gespeicherte Änderungen. Wirklich verlassen?');if(activeTab==='spontan'&&String(spontanDraft||'').trim())return confirm('Die spontane Übung ist noch nicht gespeichert. Wirklich verlassen?');return true;}
+function navTo(view,tab,push=true){if(!mayLeaveEditor())return false;if(view)mainView=view;if(tab)activeTab=tab;editingEntryId=null;render();if(push)history.pushState({rhsTraining:true,mainView,activeTab},'',location.href);return true;}
+function renderMainNav(){
+  const nav = $('#main-nav'); if(!nav) return;
+  const items = [
+    {id:'erfassen', label:'Training erfassen', key:'Alt+1'},
+    {id:'tage', label:'Trainingstage', key:'Alt+2'},
+    {id:'auswertung', label:'Auswertung', key:'Alt+3'}
+  ];
+  nav.innerHTML = items.map(it=>`<button type="button" class="${it.id===mainView?'active':''}" data-view="${it.id}">${escapeHtml(it.label)} <span class="key">${it.key}</span></button>`).join('') +
+    `<button type="button" class="secondary shortcuts-btn" id="btn-shortcuts">⌨ Tastenkürzel <span class="key">Alt+H</span></button>`+
+    `<button type="button" class="secondary shortcuts-btn" id="btn-legal">§ Impressum &amp; Datenschutz</button>`;
+  $$('button[data-view]', nav).forEach(b=> b.onclick = ()=>navTo(b.dataset.view,null,true));
+  const sBtn = $('#btn-shortcuts', nav);
+  if(sBtn) sBtn.onclick = ()=> $('#shortcuts-pop').classList.add('open');
+  const lBtn = $('#btn-legal', nav);
+  if(lBtn) lBtn.onclick = ()=> $('#legal-pop').classList.add('open');
+}
+
+function render(){
+  renderMainNav();
+  if(mainView==='tage'){
+    $('#app-view').innerHTML = renderTageView();
+    wireTageView();
+    return;
+  }
+  if(mainView==='auswertung'){
+    $('#app-view').innerHTML = renderAuswertungView();
+    wireAuswertungView();
+    return;
+  }
+  renderErfassenView();
+}
+
+function wireNewCatRow(){
+  $('#btn-cancel-cat').onclick = ()=>{ $('#new-cat-row').classList.remove('open'); $('#new-cat-input').value=''; };
+  $('#btn-add-cat').onclick = async ()=>{
+    const name = $('#new-cat-input').value.trim();
+    if(!name) return;
+    const palette = ['#6E5A8C','#4C7A8C','#8C5A5A','#5A8C6E','#8C7A3F'];
+    const color = palette[customDisciplines.length % palette.length];
+    const id = 'custom_'+uid();
+    customDisciplines.push({ id, label:name, color });
+    await persistCustomDisciplines();
+    $('#new-cat-row').classList.remove('open');
+    $('#new-cat-input').value='';
+    activeTab = id;
+    render();
+  };
+}
+
+function renderErfassenView(){
+  $('#app-view').innerHTML = `
+    <div class="tabbar" id="tabbar"></div>
+    <div class="new-cat-row" id="new-cat-row">
+      <input type="text" id="new-cat-input" placeholder="Name der neuen Trainingsart">
+      <button class="primary" id="btn-add-cat" type="button">Anlegen</button>
+      <button class="secondary" id="btn-cancel-cat" type="button">Abbrechen</button>
+    </div>
+    <div class="panel" id="panel"></div>`;
+  wireNewCatRow();
+  renderTabbar();
+  const panel = $('#panel');
+  if(activeTab==='spontan'){
+    panel.innerHTML = renderSpontanTab();
+    $('#spontan-text').oninput = e=> spontanDraft = e.target.value;
+    $('#btn-spontan-clear').onclick = ()=>{ spontanDraft=''; render(); };
+    $('#btn-spontan-save').onclick = async ()=>{
+      const text = $('#spontan-text').value.trim();
+      if(!text) return;
+      const target = $('#spontan-target').value;
+      const meta = allDisciplines()[target];
+      const entry = {
+        id: uid(), discipline: target, disciplineLabel: meta.label, timestamp: new Date().toISOString(),
+        basic: [
+          {label:'Datum', value:new Date().toISOString().slice(0,10)},
+          {label:'Ort / Übungsstätte', value:'(spontane Übung)'},
+          {label:'Freitext / Notizen', value:text}
+        ],
+        chips:[], groups:[]
+      };
+      const ok = await persistEntry(entry);
+      if(ok){ spontanDraft=''; activeTab = target; render(); } else { rhsStatus('Spontane Übung konnte nicht gespeichert werden. Bitte Speicherplatz prüfen oder eine JSON-Sicherung erstellen.',true); }
+    };
+    return;
+  }
+  const meta = allDisciplines()[activeTab];
+  panel.innerHTML = renderDisciplineForm(activeTab, meta);
+  wireFormAndList(meta);
+  if(!editingEntryId) renderContinueBanner();
+  captureEntrySnapshot();
+}
+
+/* ============================================================
+   TAB-LEISTE
+   ============================================================ */
+function renderTabbar(){
+  const meta = allDisciplines();
+  const tabs = Object.keys(meta).map(id=>{
+    const active = id===activeTab ? 'active':'';
+    return `<button type="button" class="tab ${active}" data-tab="${id}" style="--tab-color:${meta[id].color}">
+      <span class="dot" style="background:${meta[id].color}"></span>${escapeHtml(meta[id].label)}
+    </button>`;
+  }).join('');
+  const spontanActive = activeTab==='spontan' ? 'active':'';
+  $('#tabbar').innerHTML = tabs +
+    `<button type="button" class="tab spontan ${spontanActive}" data-tab="spontan" style="--tab-color:var(--c-spontan)">
+       <span class="dot" style="background:var(--c-spontan)"></span>Spontane Übung
+     </button>
+     <button type="button" class="tab add-tab" id="btn-open-newcat">+ eigene Kategorie</button>`;
+  $$('.tab[data-tab]').forEach(b=> b.onclick = ()=>navTo('erfassen',b.dataset.tab,true));
+  $('#btn-open-newcat').onclick = ()=>{ $('#new-cat-row').classList.add('open'); };
+}
+
+/* ============================================================
+   FORMULAR-BAUSTEINE (geben HTML-Strings zurück)
+   ============================================================ */
+function field(label, inputHtml){
+  return `<label class="field"><span>${label}</span>${inputHtml}</label>`;
+}
+function chipBlock(title, chips){
+  return `<div class="field-block">
+    <span class="field-title">${title}</span>
+    <div class="chip-group" data-chipgroup="${title}">
+      ${chips.map(c=>`<button type="button" class="chip">${c}</button>`).join('')}
+    </div>
+  </div>`;
+}
+function personChipBlock(title, chips){
+  return `<div class="field-block">
+    <span class="field-title">${title} <small>(Mehrfachauswahl)</small></span>
+    <div class="chip-group" data-person-chipgroup="${title}">
+      ${chips.map(c=>`<button type="button" class="chip">${c}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function localDateValue(date=new Date()){
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime()-offset).toISOString().slice(0,10);
+}
+function localTimeValue(date=new Date()){
+  return date.toTimeString().slice(0,5);
+}
+
+function fieldInputByLabel(container, label){
+  if(!container) return null;
+  const l = $$('label.field', container).find(x=>{ const s=$('span',x); return s && s.textContent===label; });
+  return l ? l.querySelector('input,select,textarea') : null;
+}
+
+function renderFrame(){
+  return `<div class="frame-row">
+    ${field('Datum', `<input type="date" required value="${localDateValue()}">`)}
+    ${field('Uhrzeit', `<input type="time" required value="${localTimeValue()}">`)}
+    ${field(`Gebietsvorlage (${trainingPlaces.length})`, `<select id="place-template-select"><option value="">– frei eingeben / neue Vorlage –</option>${trainingPlaces.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','de')).map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('')}</select>`)}
+    ${field('Ort / Übungsstätte', `<input id="training-place-name" type="text" required placeholder="z. B. ELAN Kassel, Waldgebiet …" autocomplete="off">`)}
+    ${field('Entfernung zur Heimatadresse (km)', `<div class="input-with-action"><input id="distance-home" type="number" min="0" step="0.1" inputmode="decimal" placeholder="z. B. 18,4"><button class="mini-btn" id="btn-calc-distance" type="button" title="Luftlinie vom gespeicherten Heimatpunkt zum aktuellen Standort berechnen">⌖</button></div><small class="field-note" id="distance-status">⌖ = aktuelle Luftlinie; Fahrstrecke ggf. manuell eintragen</small>`)}
+    ${field('Pause vor diesem Block', `<input id="pause-vor-block" type="text" placeholder="z. B. 20 Min oder –" autocomplete="off">`)}
+  </div>`;
+}
+
+function renderPlaceTools(){
+  return `<div class="place-tools">
+    <div class="row">
+      <label><input id="remember-new-place" type="checkbox" checked> Neuen Ort beim Speichern als Gebietsvorlage merken</label>
+      <button class="mini-btn" id="btn-place-save" type="button">Aktuelle Angaben jetzt als Gebiet merken</button>
+      <button class="mini-btn" id="btn-place-update" type="button" disabled>Gewählte Vorlage aktualisieren</button>
+      <button class="btn-link" id="btn-place-delete" type="button" disabled>Vorlage löschen</button>
+    </div>
+    <div class="place-status" id="place-status">Die Vorlage kann Ort, Entfernung und die jeweilige Geländevorauswahl übernehmen. Änderungen im aktuellen Training bleiben zunächst nur in diesem Eintrag.</div>
+  </div>
+  <div class="place-tools taktik-import-box">
+    <div class="row">
+      <button class="mini-btn" id="btn-import-taktik" type="button">🎯 Taktik-Assistent-Daten einlesen (JSON)</button>
+      <input type="file" id="taktik-import-input" accept="application/json" style="display:none">
+    </div>
+    <div class="place-status" id="taktik-import-status">Öffnet aus einer vom eigenständigen Taktik-Assistenten exportierten JSON-Datei einen NEUEN, vorausgefüllten Flächensuche-Eintrag (Ort, Wetter, Gelände-Vorschläge, Suchdauer, Track- und Fund-Zusammenfassung) – unabhängig davon, welcher Reiter hier gerade offen ist. Ein evtl. gerade unfertig bearbeiteter Eintrag wird dabei nicht gespeichert.</div>
+  </div>
+  <div class="place-tools taktik-import-box">
+    <div class="row"><button class="mini-btn" id="btn-import-rubble" type="button">🧱 Trümmersuchassistent-Daten einlesen (JSON)</button><input type="file" id="rubble-import-input" accept="application/json" style="display:none"></div>
+    <div class="place-status" id="rubble-import-status">Öffnet einen neuen vorausgefüllten Trümmersuche-Eintrag. Lage, Struktur, Gefahren, Suchaufbau, Geruchsbeobachtungen, Fundstellen und Bewertungen werden übernommen; anschließend bitte als Trainingseintrag prüfen und ergänzen.</div>
+  </div>
+  <div class="place-tools taktik-import-box">
+    <div class="row">
+      <button class="mini-btn" id="btn-import-homework" type="button">📚 Hausaufgaben aus RH Ausbildungsbegleiter</button>
+      <input type="file" id="homework-import-input" accept="application/json" style="display:none">
+    </div>
+    <div class="place-status" id="homework-import-status">Importiert die vollständigen Übungsaufbauten in einen lokalen Aufgaben-Eingang. Von dort kann jede Aufgabe als vorausgefüllter Trainingseintrag geöffnet und nach der Durchführung bewertet werden.</div>
+    <div id="homework-inbox">${renderHomeworkInbox()}</div>
+  </div>`;
+}
+
+function renderHomeworkInbox(){
+  if(!homeworkInbox.length) return '<div class="hint" style="margin-top:8px">Noch keine übertragene Hausaufgabe.</div>';
+  return homeworkInbox.map(h=>`<div class="place-status" style="margin-top:8px"><strong>${escapeHtml(h.team?.dogName||'Hund')} – ${escapeHtml(h.exercise?.title||'Übung')}</strong><br><small>${escapeHtml(h.exercise?.goal||'')}</small><div class="row" style="margin-top:6px"><button class="mini-btn" type="button" data-open-homework="${escapeHtml(h.id)}">Als Trainingseintrag öffnen</button><button class="btn-link" type="button" data-remove-homework="${escapeHtml(h.id)}">Entfernen</button></div></div>`).join('');
+}
+
+const TERRAIN_BASIC_LABELS = ['Geländeart','Bewuchsdichte','Größe Suchgebiet','Verlauf / Form / Begrenzung des Suchgebiets'];
+const TERRAIN_CHIP_LABELS = ['Untergründe','Bewuchs / Vegetation','Geländemerkmale','Besondere Belastungen'];
+
+function placeFromEntry(entry){
+  const name=findVal(entry,'Ort / Übungsstätte').trim();
+  if(!name || name==='(spontane Übung)') return null;
+  const basic={};
+  TERRAIN_BASIC_LABELS.forEach(label=>{const value=findVal(entry,label);if(value)basic[label]=value;});
+  const chips={};
+  (entry.chips||[]).forEach(c=>{if(TERRAIN_CHIP_LABELS.includes(c.label)&&c.values?.length)chips[c.label]=c.values.slice();});
+  return {id:'place_'+uid(),name,distanceKm:findVal(entry,'Entfernung zur Heimatadresse (km)'),basic,chips,createdAt:entry.timestamp||new Date().toISOString(),updatedAt:entry.geaendertAm||entry.timestamp||new Date().toISOString()};
+}
+function placesFromExistingEntries(source){
+  const seen=new Set(), result=[];
+  (source||[]).slice().sort((a,b)=>(b.geaendertAm||b.timestamp||'').localeCompare(a.geaendertAm||a.timestamp||'')).forEach(entry=>{
+    const p=placeFromEntry(entry); if(!p) return;
+    const key=p.name.toLocaleLowerCase('de-DE');
+    if(!seen.has(key)){seen.add(key);result.push(p);}
+  });
+  return result;
+}
+function labeledControl(label){
+  const form=$('#entry-form'); if(!form) return null;
+  const row=$$('.frame-row label.field, fieldset.section:not([data-repeater]) label.field',form).find(l=>$('span',l)?.textContent===label);
+  return row ? $('input,select,textarea',row) : null;
+}
+function currentPlaceData(){
+  const name=($('#training-place-name')?.value||'').trim();
+  const basic={};
+  TERRAIN_BASIC_LABELS.forEach(label=>{const c=labeledControl(label);if(c&&c.value!=='')basic[label]=c.value;});
+  const chips={};
+  TERRAIN_CHIP_LABELS.forEach(label=>{
+    const group=$(`[data-chipgroup="${label}"]`,$('#entry-form'));
+    if(group) chips[label]=$$('.chip.selected',group).map(c=>c.textContent);
+  });
+  return {name,distanceKm:$('#distance-home')?.value||'',basic,chips};
+}
+function rebuildPlaceSelect(selectedId=''){
+  const select=$('#place-template-select'); if(!select) return;
+  select.innerHTML=`<option value="">– frei eingeben / neue Vorlage –</option>${trainingPlaces.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'','de')).map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('')}`;
+  select.value=selectedId;
+  updatePlaceButtons();
+}
+function updatePlaceButtons(){
+  const selected=!!$('#place-template-select')?.value;
+  if($('#btn-place-update')) $('#btn-place-update').disabled=!selected;
+  if($('#btn-place-delete')) $('#btn-place-delete').disabled=!selected;
+}
+function setPlaceStatus(text,ok=false){
+  const el=$('#place-status'); if(el) el.innerHTML=ok?`<span class="place-badge">✓ ${escapeHtml(text)}</span>`:escapeHtml(text);
+}
+function applyPlaceTemplate(id){
+  const p=trainingPlaces.find(x=>x.id===id); if(!p) return;
+  $('#training-place-name').value=p.name||'';
+  if(p.distanceKm!==undefined) $('#distance-home').value=p.distanceKm||'';
+  Object.entries(p.basic||{}).forEach(([label,value])=>{const c=labeledControl(label);if(c)c.value=value;});
+  Object.entries(p.chips||{}).forEach(([label,values])=>{
+    const group=$(`[data-chipgroup="${label}"]`,$('#entry-form')); if(!group)return;
+    $$('.chip',group).forEach(chip=>chip.classList.toggle('selected',(values||[]).includes(chip.textContent)));
+  });
+  $('#remember-new-place').checked=false;
+  updatePlaceButtons(); setPlaceStatus('Gebietsvorlage übernommen – alle Angaben bleiben für dieses Training änderbar.',true);
+}
+function storeCurrentPlace(updateSelected=false,quiet=false){
+  const data=currentPlaceData();
+  if(!data.name){if(!quiet)setPlaceStatus('Bitte zuerst einen Ort / eine Übungsstätte eintragen.');return null;}
+  const select=$('#place-template-select');
+  let existing=updateSelected ? trainingPlaces.find(p=>p.id===select?.value) : trainingPlaces.find(p=>(p.name||'').trim().toLocaleLowerCase('de-DE')===data.name.toLocaleLowerCase('de-DE'));
+  if(existing && !updateSelected){
+    if(select)select.value=existing.id; updatePlaceButtons();
+    if(!quiet)setPlaceStatus('Für diesen Ort besteht bereits eine Vorlage. Änderungen können über „Gewählte Vorlage aktualisieren“ übernommen werden.');
+    return existing;
+  }
+  if(existing){
+    existing.name=data.name; existing.distanceKm=data.distanceKm;
+    existing.basic=Object.assign({},existing.basic||{},data.basic);
+    existing.chips=Object.assign({},existing.chips||{},data.chips);
+    existing.updatedAt=new Date().toISOString();
+  }else{
+    existing={id:'place_'+uid(),...data,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    trainingPlaces.push(existing);
+  }
+  dirtySinceSave=true; saveLocalState(); renderStorageBar(); rebuildPlaceSelect(existing.id);
+  if(!quiet)setPlaceStatus(updateSelected?'Gebietsvorlage wurde aktualisiert.':'Gebietsvorlage wurde gespeichert.',true);
+  return existing;
+}
+
+/* ============================================================
+   WETTER & ONLINE-ERFASSUNG (Standort/Wetter optional online)
+   ============================================================ */
+function renderWeather(){
+  return `<fieldset class="section">
+    <legend>Wetter <span class="badge-online">🌐 optional online</span></legend>
+    <label class="field checkbox-field"><input type="checkbox" id="chk-drinnen"><span>Training drinnen / witterungsunabhängig</span></label>
+    <div class="weather-online-box">
+      <button type="button" class="secondary" id="btn-fetch-weather">🌐 Aktuelles Wetter am Standort übernehmen</button>
+      <span class="hint" id="weather-online-status">Nutzt den Standort einmalig zur Abfrage, übernimmt die aktuellen Wetterwerte von Open-Meteo und ergänzt den Ortsnamen. Die Koordinaten werden nicht im Trainingseintrag gespeichert. Alle Werte bleiben vor dem Speichern änderbar.</span>
+    </div>
+    <div class="grid3" id="weather-fields">
+      ${field('Temperatur (°C)', `<input type="number" step="0.1">`)}
+      ${field('Wind', `<select>${opts(['windstill','leicht','mäßig','stark/böig'])}</select>`)}
+      ${field('Windrichtung', `<input type="text" placeholder="z. B. aus West">`)}
+      ${field('Niederschlag', `<select>${opts(['kein','Nieselregen','Regen','Schnee','Hagel'])}</select>`)}
+      ${field('Licht-/Sichtverhältnisse', `<select>${opts(['Tageslicht','Dämmerung','Dunkelheit mit Kunstlicht','Dunkelheit ohne Licht'])}</select>`)}
+      ${field('Erfassungsart Wetter/Ort', `<select>${opts(['manuell','online (GPS, Open-Meteo, BigDataCloud)'])}</select>`)}
+      ${field('Bodenwind beobachtet', `<select>${opts(['nicht geprüft','keine erkennbare Bewegung','sinkt bodennah ab','steigt nach oben','zieht gleichmäßig','wechselnd / verwirbelt'])}</select>`)}
+      ${field('Bodenwind / Witterungsverhalten', `<input type="text" placeholder="z. B. Rauch steht, steigt später auf">`)}
+      <details class="compact-details" style="grid-column:1/-1"><summary>Weitere automatisch übernehmbare Wetterwerte</summary><div class="grid3" style="margin-top:10px">
+        ${field('Gefühlte Temperatur (°C)', `<input type="number" step="0.1">`)}
+        ${field('Relative Luftfeuchte (%)', `<input type="number" min="0" max="100">`)}
+        ${field('Windgeschwindigkeit (km/h)', `<input type="number" min="0" step="0.1">`)}
+        ${field('Windböen (km/h)', `<input type="number" min="0" step="0.1">`)}
+        ${field('Bewölkung (%)', `<input type="number" min="0" max="100">`)}
+        ${field('Wetterbeschreibung', `<input type="text">`)}
+        ${field('Wetterdaten abgerufen am', `<input type="text" readonly>`)}
+      </div></details>
+    </div>
+    <div class="tactic-box" id="tactic-box" hidden></div>
+  </fieldset>`;
+}
+
+function degToCompass(deg){
+  const dirs=['Nord','Nordost','Ost','Südost','Süd','Südwest','West','Nordwest'];
+  return dirs[Math.round((((deg%360)+360)%360)/45)%8];
+}
+function windSpeedToCategory(kmh){
+  if(kmh<2) return 'windstill';
+  if(kmh<20) return 'leicht';
+  if(kmh<40) return 'mäßig';
+  return 'stark/böig';
+}
+function weatherCodeToNiederschlag(code, precipMm){
+  code = code||0;
+  if(code>=95) return 'Hagel';
+  if((code>=71&&code<=77)||code===85||code===86) return 'Schnee';
+  if(code>=51&&code<=57) return 'Nieselregen';
+  if((code>=61&&code<=67)||(code>=80&&code<=82)) return 'Regen';
+  if((precipMm||0)>0) return 'Regen';
+  return 'kein';
+}
+function weatherCodeLabel(code){
+  const labels={0:'klar',1:'überwiegend klar',2:'teilweise bewölkt',3:'bedeckt',45:'Nebel',48:'Nebel mit Reif',51:'leichter Nieselregen',53:'Nieselregen',55:'starker Nieselregen',56:'gefrierender Nieselregen',57:'starker gefrierender Nieselregen',61:'leichter Regen',63:'Regen',65:'starker Regen',66:'gefrierender Regen',67:'starker gefrierender Regen',71:'leichter Schneefall',73:'Schneefall',75:'starker Schneefall',77:'Schneegriesel',80:'leichte Regenschauer',81:'Regenschauer',82:'starke Regenschauer',85:'leichte Schneeschauer',86:'starke Schneeschauer',95:'Gewitter',96:'Gewitter mit Hagel',99:'starkes Gewitter mit Hagel'};
+  return labels[Number(code)]||'Wettercode '+String(code??'unbekannt');
+}
+function setSelectValue(sel, value){
+  if(sel && value!=null && Array.from(sel.options).some(o=>o.value===value)) sel.value=value;
+}
+function setNumberValue(input,value,digits=0){
+  if(input&&Number.isFinite(value))input.value=Number(value).toFixed(digits);
+}
+function applyWeatherData(wData){
+  const c = (wData && wData.current) || {};
+  const box = $('#weather-fields'); if(!box) return;
+  const temp = fieldInputByLabel(box,'Temperatur (°C)');
+  setNumberValue(temp,c.temperature_2m,1);
+  setSelectValue(fieldInputByLabel(box,'Wind'), windSpeedToCategory(c.wind_speed_10m||0));
+  const windDir = fieldInputByLabel(box,'Windrichtung');
+  if(windDir && Number.isFinite(c.wind_direction_10m)) windDir.value = 'aus '+degToCompass(c.wind_direction_10m);
+  setSelectValue(fieldInputByLabel(box,'Niederschlag'), weatherCodeToNiederschlag(c.weather_code, c.precipitation));
+  setSelectValue(fieldInputByLabel(box,'Licht-/Sichtverhältnisse'), c.is_day===0 ? 'Dämmerung' : 'Tageslicht');
+  setSelectValue(fieldInputByLabel(box,'Erfassungsart Wetter/Ort'), 'online (GPS, Open-Meteo, BigDataCloud)');
+  setNumberValue(fieldInputByLabel(box,'Gefühlte Temperatur (°C)'),c.apparent_temperature,1);
+  setNumberValue(fieldInputByLabel(box,'Relative Luftfeuchte (%)'),c.relative_humidity_2m,0);
+  setNumberValue(fieldInputByLabel(box,'Windgeschwindigkeit (km/h)'),c.wind_speed_10m,1);
+  setNumberValue(fieldInputByLabel(box,'Windböen (km/h)'),c.wind_gusts_10m,1);
+  setNumberValue(fieldInputByLabel(box,'Bewölkung (%)'),c.cloud_cover,0);
+  const desc=fieldInputByLabel(box,'Wetterbeschreibung');if(desc)desc.value=weatherCodeLabel(c.weather_code);
+  const stamp=fieldInputByLabel(box,'Wetterdaten abgerufen am');if(stamp)stamp.value=new Date().toLocaleString('de-DE');
+}
+function applyPlaceData(gData){
+  if(!gData) return;
+  const name = gData.city || gData.locality || gData.principalSubdivision || '';
+  const placeInput = $('#training-place-name');
+  if(placeInput && !placeInput.value.trim() && name){
+    placeInput.value = name + (gData.countryName && gData.countryName!=='Deutschland' && gData.countryName!=='Germany' ? ', '+gData.countryName : '');
+  }
+}
+function suggestSearchTactic(wData){
+  const c=(wData && wData.current) || {};
+  const box=$('#tactic-box'); if(!box) return;
+  const parts=[];
+  const dir = Number.isFinite(c.wind_direction_10m) ? degToCompass(c.wind_direction_10m) : null;
+  const speed = c.wind_speed_10m||0;
+  if(dir && speed<2){
+    parts.push('Windstille/kaum Luftbewegung: Geruch verteilt sich kaum und sammelt sich eher in Senken und an Hindernissen – Suchgebiet in engmaschigeren Bahnen absuchen.');
+  } else if(dir){
+    parts.push('Wind kommt aus '+dir+' (ca. '+Math.round(speed)+' km/h): Suchgebiet nach Möglichkeit von der windzugewandten Seite her anlaufen, damit die Witterung zum Hund steht statt weggetragen wird.');
+  }
+  const niederschlag = weatherCodeToNiederschlag(c.weather_code, c.precipitation);
+  if(niederschlag==='Regen'||niederschlag==='Nieselregen'){
+    parts.push('Niederschlag: Bodenwitterung kann sich rascher verändern – zügiger arbeiten und ggf. Suchintervalle verkürzen.');
+  }
+  if(niederschlag==='Schnee'){
+    parts.push('Schnee: Geruch kann durch die Schneedecke gedämpft werden – ggf. mehr Zeit einplanen.');
+  }
+  if(Number.isFinite(c.temperature_2m) && c.temperature_2m>=22){
+    parts.push('Höhere Temperatur: kürzere Sucheinheiten und ausreichend Trinkpausen einplanen.');
+  }
+  if(Number.isFinite(c.relative_humidity_2m) && c.relative_humidity_2m>=80 && Number.isFinite(c.temperature_2m) && c.temperature_2m>=18){
+    parts.push('Hohe Luftfeuchte zusammen mit Wärme: Belastung und Erholung des Hundes besonders eng beobachten.');
+  }
+  if(Number.isFinite(c.wind_gusts_10m) && c.wind_gusts_10m>=35){
+    parts.push('Deutliche Böen: Windbild kann schnell wechseln; häufiger am Boden prüfen und Suchentscheidungen flexibel halten.');
+  }
+  if(Number.isFinite(c.temperature_2m) && c.temperature_2m<=2){
+    parts.push('Niedrige Temperatur: Aufwärmen nicht auslassen und Pfoten im Blick behalten.');
+  }
+  if(!parts.length) parts.push('Keine besonderen witterungsbedingten Auffälligkeiten anhand der Online-Daten erkennbar.');
+  box.hidden=false;
+  box.innerHTML = '<h4>Automatischer Taktik-Hinweis</h4><p>'+parts.map(escapeHtml).join('<br>')+'</p>'+
+    '<button type="button" class="mini-btn" id="btn-tactic-to-notes">In Notizen übernehmen</button>'+
+    '<span class="disclaimer">Lokal berechneter, regelbasierter Hinweis aus den online abgerufenen Wetterdaten – ersetzt keine fachliche Einschätzung vor Ort.</span>';
+  const btn=$('#btn-tactic-to-notes');
+  if(btn) btn.onclick = ()=>{
+    const notesInput = fieldInputByLabel($('#entry-form'), 'Freitext / Notizen');
+    if(notesInput){ notesInput.value = (notesInput.value?notesInput.value+'\n\n':'') + 'Automatischer Taktik-Hinweis: ' + parts.join(' '); }
+  };
+}
+function fetchOnlineWeatherAndPlace(){
+  const status = $('#weather-online-status');
+  if(!status) return;
+  if(navigator.onLine===false){ status.textContent='Kein Internet erkannt – bitte weiter unten manuell eintragen.'; return; }
+  if(!navigator.geolocation){ status.textContent='Standortermittlung wird von diesem Browser nicht unterstützt.'; return; }
+  status.textContent='Standort wird ermittelt …';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat=pos.coords.latitude, lon=pos.coords.longitude;
+    status.textContent='Wetterdaten werden online abgerufen (Open-Meteo) …';
+    try{
+      const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day&timezone=auto`);
+      if(!wRes.ok) throw new Error('Wetterdienst nicht erreichbar');
+      const wData = await wRes.json();
+      applyWeatherData(wData);
+      suggestSearchTactic(wData);
+      status.textContent='Ortsname wird online ermittelt (BigDataCloud) …';
+      try{
+        const gRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=de`);
+        if(gRes.ok){ const gData = await gRes.json(); applyPlaceData(gData); }
+      }catch(geoErr){ /* Ortsname optional - Wetterdaten wurden bereits übernommen */ }
+      if(Number.isFinite(privateHome.lat) && Number.isFinite(privateHome.lon)){
+        const distInput = $('#distance-home');
+        if(distInput) distInput.value = haversineKm(privateHome, {lat,lon}).toFixed(1);
+      }
+      status.textContent='Wetterdaten wurden übernommen (Open-Meteo; Ortsname über BigDataCloud, '+new Date().toLocaleTimeString('de-DE')+' Uhr). Windwerte stammen aus dem Wettermodell auf 10 m Höhe: Bodenwind bitte vor Ort prüfen und ergänzen. Kein Konto oder API-Schlüssel nötig.';
+    }catch(err){
+      status.textContent='Wetterdaten konnten nicht abgerufen werden (kein Internet oder Dienst nicht erreichbar). Bitte manuell eintragen.';
+    }
+  }, ()=>{ status.textContent='Standort konnte nicht ermittelt werden. Bitte Standortfreigabe prüfen oder manuell eintragen.'; }, {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
+}
+function wireWeatherOnlineButton(){
+  const btn = $('#btn-fetch-weather');
+  if(btn) btn.onclick = fetchOnlineWeatherAndPlace;
+}
+
+function renderTerrain(){
+  return `<fieldset class="section">
+    <legend>Gelände &amp; Suchgebiet</legend>
+    <div class="grid2">
+      ${field('Geländeart', `<select>${opts(['Wald','Wiese/Weide','Acker/Feld','Siedlung/Ortschaft','Park/Friedhof','Industrie-/Gewerbegelände','Steinbruch/Kiesgrube','Mischgelände','Sonstiges'])}</select>`)}
+      ${field('Bewuchsdichte', `<select>${opts(['frei / kurz','licht','mittel','dicht','sehr dicht / kaum durchdringbar'])}</select>`)}
+      ${field('Größe Suchgebiet', `<input type="text" placeholder="z. B. 3 ha / 200×300 m">`)}
+      ${field('Dauer der eigentlichen Suche', `<input type="text" placeholder="z. B. 25 min">`)}
+    </div>
+    ${field('Verlauf / Form / Begrenzung des Suchgebiets', `<textarea rows="2"></textarea>`)}
+    ${chipBlock('Untergründe', ['Waldboden','Wiese','Acker','Asphalt/Weg','Schotter','Sand','Schnee/Eis','Wasser/Sumpf','Sonstiges'])}
+    <details class="compact-details">
+      <summary>Gelände genauer beschreiben (optional)</summary>
+      ${chipBlock('Bewuchs / Vegetation', ['dornig','Brennnesseln','hohes Gras','dichter Unterwuchs','Farn','Jungwuchs','Totholz','kaum Bewuchs'])}
+      ${chipBlock('Geländemerkmale', ['eben','uneben','steil/abschüssig','felsig','Gräben/Böschungen','Gewässer/Bachlauf','Wege/Schneisen','eingezäunt/begrenzt','Gebäudeanteil','schwer zugänglich'])}
+      ${chipBlock('Besondere Belastungen', ['Zecken','Dornen-/Verletzungsgefahr','Rutschgefahr','Verkehr','Publikumsverkehr','Wildbesatz','Weidetiere','Dunkelheit'])}
+    </details>
+  </fieldset>`;
+}
+
+function repeaterItemHelfer(){
+  return `<div class="repeater-item">
+    <button type="button" class="remove-row">×</button>
+    <div class="grid3">
+      ${field('Rolle', `<select>${opts(['Versteckperson','unbekannte Zielperson','Helfer im Feld'])}</select>`)}
+      ${field('Kürzel / Initialen', `<input type="text">`)}
+      ${field('Alter (ca.)', `<input type="text">`)}
+      ${field('Geschlecht', `<select>${opts(['m','w','d'])}</select>`)}
+      ${field('Bekanntheit für den Hund', `<select>${opts(['unbekannt','flüchtig bekannt','gut bekannt'])}</select>`)}
+      ${field('Erfahrung als Helfer', `<select>${opts(['erstmalig','wenig erfahren','erfahren'])}</select>`)}
+    </div>
+    <div class="person-find">
+      <p class="person-find-title">Individuelle Auffindesituation dieser Person</p>
+      <div class="grid3">
+        ${field('Versteckart / Position', `<select>${opts(['offen ebenerdig','erhöht (Baum/Fahrzeug/Dach)','verdeckt (Gebüsch/Graben)','in Gebäude/Raum','im Wasser','unter Trümmern / im Hohlraum','bewegte Person','sonstiges'])}</select>`)}
+        ${field('Sichtbarkeit für den Hund', `<select>${opts(['frei sichtbar','teilweise verdeckt','vollständig verdeckt'])}</select>`)}
+        ${field('Verhalten im Versteck', `<select>${opts(['ruhig sitzend','ruhig liegend','stehend','unruhig','sich bewegend','rufend / Geräusche','schlafend / regungslos','sonstiges'])}</select>`)}
+        ${field('Geruchsintensität / Liegezeit', `<select>${opts(['frisch / normal','starkes Geruchsbild','schwach / gealtert','Geruch abgeschirmt','nicht beurteilt'])}</select>`)}
+        ${field('Zugänglichkeit', `<select>${opts(['gut erreichbar','erschwert erreichbar','nur kriechend erreichbar','nur kletternd erreichbar','für Hund nicht direkt erreichbar'])}</select>`)}
+        ${field('Zeit im Versteck vor Suchbeginn', `<input type="text" placeholder="z. B. 10 Min.">`)}
+        ${field('Höhe / Tiefe', `<input type="text" placeholder="z. B. 1,5 m erhöht / 50 cm tief">`)}
+        ${field('Lage im Suchgebiet', `<input type="text" placeholder="z. B. Randlage, Mitte, windabgewandt">`)}
+        ${field('Geruchsaustritt / Windbezug', `<input type="text" placeholder="z. B. Austritt seitlich, wechselnder Wind">`)}
+      </div>
+      ${field('Individuelle Ablenkungen / Besonderheiten', `<textarea rows="2" placeholder="z. B. Wildwechsel, zweite Person in der Nähe, Verkehr, schwerer Zugang"></textarea>`)}
+    </div>
+    <div class="person-result">
+      <p class="person-result-title">Individuelles Ergebnis dieser Person</p>
+      <div class="grid3">
+        ${field('Gefunden / angezeigt', `<select>${resultOpts(['ja, selbstständig','ja, mit Unterstützung','nur Witterung aufgenommen','überlaufen / nicht gefunden','nicht bewertet'])}</select>`)}
+        ${field('Zeit bis Fund / Anzeige', `<input type="text" placeholder="z. B. 8:30 min">`)}
+        ${field('Verlauf der Suche / Suchqualität', `<select>${resultOpts(['motiviert und schnell','motiviert, aber langsam','konzentriert, aber langsam','unkonzentriert','ablenkbar','unmotiviert','übermotiviert / hektisch','Motivation zunehmend','Motivation nachlassend','nicht bewertet'])}</select>`)}
+        ${field('Führbarkeit des Hundes im Gelände', `<select>${resultOpts(['sehr gut – selbstständig und jederzeit ansprechbar','gut – kleine Hilfen nötig','wechselhaft führbar','eingeschränkt – häufige Hilfen nötig','schwer führbar / kaum ansprechbar','nicht bewertet'])}</select>`)}
+        ${field('Bewertung', `<select>${resultOpts(RESULT_SCALE)}</select>`)}
+        ${field('Anzeigequalität', `<select>${resultOpts(['spontan und sauber','sicher und anhaltend','kurz / unterbrochen','verzögert','musste bestätigt werden','abgelenkt','unmotiviert','Anzeige abgebrochen','keine Anzeige','nicht zutreffend'])}</select>`)}
+      </div>
+      ${personChipBlock('Verhalten an der Versteck-/Zielperson', ['Abstand gehalten','Person berührt','Person bedrängt','angesprungen','beleckt','beschnüffelt / abgesucht','ruhig bei der Person geblieben','zurückgewichen / unsicher'])}
+      ${field('Beobachtung / nächstes Lernziel', `<textarea rows="2" placeholder="Was war bei genau dieser Person auffällig oder soll wiederholt werden?"></textarea>`)}
+    </div>
+  </div>`;
+}
+function renderHelpers(){
+  return `<fieldset class="section" data-repeater="Helfer / Versteckperson">
+    <legend>Helfer / Versteckperson(en)</legend>
+    <div class="repeater-list">${repeaterItemHelfer()}</div>
+    <button type="button" class="add-row" data-add="helfer">+ Person hinzufügen</button>
+  </fieldset>`;
+}
+
+function renderRubble(){
+  return `<fieldset class="section">
+    <legend>Trümmersuche – Lage, Sicherheit & Suchaufbau</legend>
+    <p class="hint">Für eine schnelle Eingabe sind die Angaben in drei Blöcke gegliedert. Nur den gerade benötigten Block öffnen.</p>
+    <details open><summary><strong>1 · Gelände & Sicherheit</strong></summary>
+    ${chipBlock('Trümmer-/Objektart', ['Beton','Mauerwerk','Holz','Mischschutt','Gebäudeteile','Fahrzeuge','Tunnel/Röhre','Sonstiges'])}
+    <div class="grid2">
+      ${field('Freigabe / Sicherheitscheck', `<select>${opts(['fachkundig freigegeben','Ausbildungsbereich freigegeben','nur definierter sicherer Teil','nicht geprüft – nicht betreten'])}</select>`)}
+      ${field('PSA Hundeführer', `<select>${opts(['vollständig','teilweise / nach Gefährdungsbeurteilung','nicht erforderlich im Übungsaufbau','nicht geprüft'])}</select>`)}
+      ${field('Hohlraumsituation', `<select>${opts(['mehrere/verzweigt','einfacher Hohlraum','geschlossener Raum','Tunnel/Kanal','keine erkennbare','unbekannt'])}</select>`)}
+      ${field('Verschüttung / Tiefe', `<input type="text" placeholder="z. B. tief, flach, 1,5 m">`)}
+      ${field('Sichtkontakt HF–Hund', `<select>${opts(['durchgehend','teilweise','kein Sichtkontakt','Dunkelarbeit'])}</select>`)}
+      ${field('Arbeitsdistanz', `<select>${opts(['nah','mittel','weit','wechselnd'])}</select>`)}
+    </div>
+    ${chipBlock('Gefahren / Belastungen', ['scharfe Kanten','Splitter','lose Teile','Absturz','Rutschgefahr','enge Räume','Dunkelheit','Lärm','Staub','Hitze/Kälte','beweglicher Untergrund','Maschinen/Fahrzeuge'])}
+    ${chipBlock('Untergründe / Gewandtheit', ['Geröll','Gitterrost','Bohle','Leiter','Wippe','bewegliche Brücke','Röhre/Tunnel','schmaler Steg','Höhenwechsel','instabile Fläche'])}
+    ${field('Zugänge / sichere Wege / Tabuzonen', `<textarea rows="2" placeholder="Freigegebene Zugänge, Grenzen, Abbruchkriterien"></textarea>`)}
+    </details>
+    <details><summary><strong>2 · Geruch & Suchaufbau</strong></summary>
+    <div class="grid2">
+      ${field('Geruchsaustritte / Luftwege', `<textarea rows="3" placeholder="vermutete/erkannte Austritte, Schächte, Fugen, Öffnungen, Windkanäle"></textarea>`)}
+      ${field('Geruchspool / Mikrolokalisierung', `<textarea rows="3" placeholder="Wo nahm der Hund Geruch auf? Wo verglich er? Wo lokalisierte er präzise?"></textarea>`)}
+    </div>
+    ${chipBlock('Versteck-/Geruchslage', ['tief verschüttet','erhöht','geschlossener Raum','mehrere Austritte','Austritt fern der VP','Verleitung/Altgeruch','mehrere VP','leeres Negativgebiet'])}
+    ${chipBlock('Suchaufbau', ['Grobsuche','Feinsuche/Mikrolokalisierung','Randbereiche','Teilsektor','Gesamttrümmerfeld','Dunkelheit','Wiederansatz','Negativsuche'])}
+    </details>
+    <details><summary><strong>3 · Bewertung & nächster Aufbau</strong></summary>
+    <div class="grid2">
+      ${field('Selbstständigkeit', `<select>${resultOpts(['sehr selbstständig','selbstständig mit kleinen Hilfen','wechselhaft','häufige Hilfen','nicht bewertet'])}</select>`)}
+      ${field('Mikrolokalisierung', `<select>${resultOpts(['präzise an Quelle/Austritt','gute Eingrenzung','Geruchspool erkannt, Quelle unsicher','vorschnelle Anzeige','keine Lokalisierung','nicht bewertet'])}</select>`)}
+      ${field('Anzeige in Trümmern', `<select>${resultOpts(['stabiler Verbeller','Verbeller mit Pausen','verzögert','durch HF gestört','abgebrochen','keine Anzeige','nicht bewertet'])}</select>`)}
+      ${field('Bewegungssicherheit', `<select>${resultOpts(['sicher und flüssig','vorsichtig aber sicher','einzelne Unsicherheiten','deutlich unsicher','Abbruch aus Sicherheitsgründen','nicht bewertet'])}</select>`)}
+    </div>
+    ${field('Trainerbeobachtung / nächster Aufbau', `<textarea rows="3" placeholder="Nur eine Schwierigkeit erhöhen; ggf. zum letzten sicheren Schritt zurückgehen"></textarea>`)}
+    </details>
+  </fieldset>`;
+}
+
+function renderIndication(){
+  return `<fieldset class="section">
+    <legend>Anzeigeverhalten – Details</legend>
+    <div class="grid2">
+      ${field('Anzeigeart', `<select>${opts(['Verbellen','Bringsel','Kombination','Freianzeige','Sonstiges'])}</select>`)}
+      ${field('Distanz Hund–Hundeführer bei Anzeigebeginn', `<input type="text">`)}
+      ${field('Latenzzeit (Auffinden bis Anzeige)', `<input type="text">`)}
+      ${field('Haltevermögen / Anzeigedauer', `<input type="text">`)}
+    </div>
+    ${field('Rückkehr-/Führverhalten (bei Bringsel/Rückführen)', `<textarea rows="2"></textarea>`)}
+    ${field('Ablenkungen während der Anzeige', `<textarea rows="2"></textarea>`)}
+  </fieldset>`;
+}
+
+function repeaterItemUebung(){
+  return `<div class="repeater-item">
+    <button type="button" class="remove-row">×</button>
+    <div class="grid3">
+      ${field('Übung', `<select>${opts(['Sitz','Platz','Steh','Fuß/Bei Fuß','Abrufen','Bleiben unter Ablenkung','Leinenführigkeit','Freifolge','Apportieren','Sonstiges'])}</select>`)}
+      ${field('Signalart', `<select>${opts(['Hörzeichen','Sichtzeichen','Kombination'])}</select>`)}
+      ${field('Distanz', `<input type="text">`)}
+      ${field('Ablenkungsart', `<input type="text">`)}
+      ${field('Ablenkungsintensität', `<select>${opts(['keine','gering','mittel','stark'])}</select>`)}
+      ${field('Ergebnis', `<select>${opts(['sicher ausgeführt','mit Einschränkungen','nicht ausgeführt'])}</select>`)}
+    </div>
+  </div>`;
+}
+function renderObedience(){
+  return `<fieldset class="section" data-repeater="Gehorsamsübung">
+    <legend>Gehorsamsübungen</legend>
+    <div class="repeater-list">${repeaterItemUebung()}</div>
+    <button type="button" class="add-row" data-add="uebung">+ Übung hinzufügen</button>
+  </fieldset>`;
+}
+
+function repeaterItemGeraet(){
+  return `<div class="repeater-item">
+    <button type="button" class="remove-row">×</button>
+    <div class="grid3">
+      ${field('Gerät', `<select>${opts(['Wippe','Laufsteg/Steg','Leiter','Tunnel','Slalom','Podest','A-Wand/Rampe','Balancierscheibe','Untergrundwechsel','Engstelle/Absperrung','Sonstiges'])}</select>`)}
+      ${field('Sicherung durch Hundeführer', `<select>${opts(['ja','nein'])}</select>`)}
+      ${field('Selbständigkeit', `<select>${opts(['selbständig','mit Führung','verweigert'])}</select>`)}
+      ${field('Ergebnis', `<select>${opts(['sicher/souverän','unsicher/zögerlich','verweigert/abgebrochen','nicht geübt heute'])}</select>`)}
+    </div>
+  </div>`;
+}
+function renderAgility(){
+  return `<fieldset class="section" data-repeater="Gerät">
+    <legend>Geräte / Gewandtheit</legend>
+    <div class="repeater-list">${repeaterItemGeraet()}</div>
+    <button type="button" class="add-row" data-add="geraet">+ Gerät hinzufügen</button>
+  </fieldset>`;
+}
+
+/* --- Physio & Fitness --- */
+const PHYSIO_WARMUP_EXERCISES = [
+  'Schritt-Trab-Wechsel','Achter-Laufen um die Beine','Große Slalomkurven','Tempowechsel aus dem Sitz','Tempowechsel aus dem Platz',
+  'Kinn zur Brust (Halswirbelsäule)','Kinn zur Decke (Halsstreckung)','Nase zur linken Hüfte','Nase zur rechten Hüfte','Nase zum Sprunggelenk',
+  'Sitz-Steh-Wechsel','Platz-Steh-Wechsel','Vorsichtiges Rückwärtsrichten','Seitliches Treten (Cavaletti-Vorbereitung)','Pfoten-Schütteln','Sonstiges'
+];
+const PHYSIO_MAIN_EXERCISES = [
+  'Der Diener (Verbeugung)','Männchen machen (Sitz-Aufrichten)','Elefanten-Trick (Vorderpfoten erhöht)','Bergauf-Stehen','Kniebeugen (Sitz-Steh in Zeitlupe)',
+  'Hinterpfoten erhöht','Bergab-Stehen','Schubkarre (unterstützt)',
+  'Langes Rückwärtsrichten','Cavaletti-Training (Schritt)','Mikro-Cavaletti (unregelmäßig)','Slalom im Zeitlupen-Schritt','Der Kreisel auf der Kiste',
+  'Isometrisches Drücken','Pfote anheben (Diagonale)','Stehen auf Balance-Kissen/Luftmatratze','Zwei-Kissen-Training','Untergrund-Wechsel (Kies/Sand/Moos/Pflaster/Gitterrost)','Die Schaukel (Wackelbrett)','Vorderpfoten-Wackeln','Sonstiges'
+];
+const PHYSIO_COOLDOWN_EXERCISES = [
+  'Auslaufen im Passgang/Schritt','Große auslaufende Achterschleifen','Schlangenlinien auf gerader Strecke','Freies Schnüffeln',
+  'Ausstreichen der Rückenlinie','Ausstreichen der Oberschenkel','Schulter-Massage','Sanftes Ruten-Ausziehen','Pfoten-Massage','Ohr-Massage',
+  'Leckerli-Suchspiel im Gras','Schleckmatte / Kong','Isometrisches Handauflegen (Wärme)','Sanftes Ausschütteln der Beine','Ruhe-Kommando im Körbchen','Sonstiges'
+];
+
+function renderPhysioInfo(){
+  return `<fieldset class="section">
+    <legend>Hinweise zur sinnvollen Trainingsplanung</legend>
+    <p style="margin:0 0 8px;">Gesamtdauer max. 20–30 Minuten (inkl. Warm-up/Cool-down). Der anstrengende Hauptteil (Physio/Kraft) sollte
+    5–10 Minuten am Stück nicht überschreiten – Muskeln ermüden bei statischer/koordinativer Arbeit schnell. Anfangs 3–5 Wiederholungen,
+    statische Positionen nur 3–5 Sekunden halten. 2–3 Einheiten/Woche mit mind. 48 Stunden Pause zwischen intensiven Einheiten reichen aus.</p>
+    <p style="margin:0;">Nicht ohne tierärztliche/physiotherapeutische Rücksprache bei: Hunden im Wachstum (offene Wachstumsfugen),
+    frischen Verletzungen, Frakturen oder OPs, Trächtigkeit, Verdacht auf Schmerzen, Herz-/Kreislauferkrankungen oder bekannten
+    orthopädischen Befunden (z. B. HD, Spondylose). Immer auf rutschfestem Untergrund und mit vollständigem Warm-up beginnen.</p>
+  </fieldset>`;
+}
+
+function repeaterItemPhysio(exerciseList){
+  return `<div class="repeater-item">
+    <button type="button" class="remove-row">×</button>
+    <div class="grid3">
+      ${field('Übung', `<select>${opts(exerciseList)}</select>`)}
+      ${field('Wiederholungen / Haltezeit', `<input type="text" placeholder="z. B. 3× 5 Sek.">`)}
+      ${field('Ausführung', `<select>${opts(['sauber','unsicher','vermieden/verweigert','schmerzhaft – abgebrochen'])}</select>`)}
+    </div>
+    ${field('Anmerkung', `<input type="text">`)}
+  </div>`;
+}
+function renderPhysioWarmup(){
+  return `<fieldset class="section" data-repeater="Warm-up-Übung">
+    <legend>Warm-up</legend>
+    <div class="repeater-list">${repeaterItemPhysio(PHYSIO_WARMUP_EXERCISES)}</div>
+    <button type="button" class="add-row" data-add="physiowarmup">+ Warm-up-Übung hinzufügen</button>
+  </fieldset>`;
+}
+function renderPhysioMain(){
+  return `<fieldset class="section" data-repeater="Kräftigungs-/Koordinationsübung">
+    <legend>Hauptteil – Kräftigung, Koordination &amp; Balance</legend>
+    <div class="repeater-list">${repeaterItemPhysio(PHYSIO_MAIN_EXERCISES)}</div>
+    <button type="button" class="add-row" data-add="physiomain">+ Übung hinzufügen</button>
+  </fieldset>`;
+}
+function renderPhysioCooldown(){
+  return `<fieldset class="section" data-repeater="Cool-down-Übung">
+    <legend>Cool-down</legend>
+    <div class="repeater-list">${repeaterItemPhysio(PHYSIO_COOLDOWN_EXERCISES)}</div>
+    <button type="button" class="add-row" data-add="physiocooldown">+ Cool-down-Übung hinzufügen</button>
+  </fieldset>`;
+}
+function renderResultPhysio(){
+  return `<fieldset class="section result">
+    <legend>Ergebnis</legend>
+    ${renderPreviousResult()}
+    <div class="grid2">
+      ${field('Gesundheitszustand vor dem Training', `<select>${opts(['fit / unauffällig','leichte Einschränkung','Rücksprache Tierarzt/Physio nötig'])}</select>`)}
+      ${field('Pause seit letzter Physio-Einheit', `<input type="text" placeholder="z. B. 3 Tage">`)}
+      ${field('Gesamtdauer/Struktur eingehalten', `<select>${opts(['ja','teilweise','nein'])}</select>`)}
+      ${field('Ermüdungs-/Schmerzanzeichen', `<select>${opts(['keine','leichtes Zittern','Vermeidungsverhalten','Humpeln','Sonstiges (siehe Anmerkung)'])}</select>`)}
+      ${field('Zustand nach dem Training', `<select>${opts(['munter','ruhig/entspannt','erschöpft','angespannt'])}</select>`)}
+      ${field('Gesamtbewertung', `<select>${resultOpts(RESULT_SCALE)}</select>`)}
+    </div>
+    ${field('Fortschritt im Vergleich zur letzten Einheit', `<textarea rows="2"></textarea>`)}
+    ${renderLearningFields(false)}
+  </fieldset>`;
+}
+
+/* --- Alltagstraining (aus Trainingskalender.xlsx, Blatt "Übungen & Erklärung") --- */
+const ALLTAG_GROUPS = [
+  { label:'Bindung, Kooperation & Gelassenheit', items:[
+    {name:'Namensreaktion & freiwillige Orientierung', ziel:'Der Hund wendet sich auch in neuer Umgebung freiwillig zum Menschen.', material:'3 Wiederholungen zu Spaziergangsbeginn.', hinweis:'Kein Daueransprechen; Reizdistanz erhöhen.'},
+    {name:'Handtarget', ziel:'Kooperative Führung ohne Ziehen; Basis für Positionen und Körperpflege.', material:'Wohnung, Garten, Spaziergang.', hinweis:'Nicht gegen die Nase drücken.'},
+    {name:'Kinnablage als Zustimmungssignal', ziel:'Freiwilliges Stillhalten und verständliche Pausemöglichkeit.', material:'Pflege, Tierarztvorbereitung.', hinweis:'Nimmt der Hund das Kinn weg: sofort pausieren.'},
+    {name:'Deckentraining / Ruheplatz', ziel:'Aktives Herunterfahren in wechselnder Umgebung.', material:'Restaurant, Unterkunft, Ausbildungsabend.', hinweis:'Nicht erst bei Überforderung einsetzen.'},
+    {name:'Startsignal und Freigabewort', ziel:'Klare Trennung zwischen Warten, Arbeiten und Freizeit.', material:'Tür, Auto, Kenndecke/Geschirr.', hinweis:'Signale sparsam und eindeutig halten.'},
+    {name:'Erregung hoch- und herunterfahren', ziel:'Spielbar und anschließend wieder ansprechbar bleiben.', material:'Zerrspiel auf Wiese.', hinweis:'Kein körperlich hartes Spiel; Zähne/Hände schützen.'},
+    {name:'Tausch & Ausgeben', ziel:'Gegenstände konfliktfrei freigeben.', material:'Spielzeug, Handschuh, Fundgegenstand.', hinweis:'Nie gewaltsam aus dem Fang ziehen.'},
+    {name:'Frustrationstoleranz: kurze Warteinsel', ziel:'Ruhig bleiben, obwohl Belohnung oder Start sichtbar ist.', material:'Vor Napf, Autotür, Suchstart.', hinweis:'Schwierigkeit klein halten; kein langes Aushalten.'},
+    {name:'Kooperative Körperkontrolle', ziel:'Pfoten, Ohren, Zähne und Körper freiwillig kontrollieren lassen.', material:'Nach Spaziergang/Training.', hinweis:'Zustimmungssignal nutzen; Schmerz abklären.'},
+    {name:'Maulkorb positiv aufbauen', ziel:'Entspanntes Tragen eines hechelfähigen Beißkorbs.', material:'1–2 min im Alltag, langsam steigern.', hinweis:'Passform: Hecheln und Wasseraufnahme möglich; kein Metall/Maulschlinge.'},
+    {name:'Allein mit Hundeführer in neuer Umgebung', ziel:'Sicherheit ohne Zweithund oder bekannte Routine entwickeln.', material:'Einzelspaziergang, Hotelprobe.', hinweis:'Leistung nicht vorschnell als Anzeigeproblem deuten; Gesamtbelastung notieren.'},
+    {name:'Selbstständiges Erkunden neuer Objekte', ziel:'Neugier und Selbstwirksamkeit ohne Lockdruck fördern.', material:'Bank, Plane, Skulptur, Baustellenelement.', hinweis:'Hund darf sich zunächst anderweitig beschäftigen; nur eine Variable neu.'},
+    {name:'Regeneration nach Überraschungsreiz', ziel:'Nach kurzem Erschrecken selbstständig in Normalverhalten zurückfinden.', material:'Alltagsgeräusche, flatternde Gegenstände.', hinweis:'Kein absichtliches Erschrecken oder Flooding.'},
+    {name:'Warten im und am Fahrzeug', ziel:'Ruhiges Ein-/Aussteigen und Erholung zwischen Arbeiten.', material:'Parkplatz, Trainingsgelände.', hinweis:'Temperatur, Lüftung und Sicherung stets kontrollieren.'}
+  ]},
+  { label:'Verhalten & Grundfertigkeiten (Modul 1.1)', items:[
+    {name:'Chip auslesen lassen', ziel:'Unbefangenes Stillhalten bei fremder Person und Gerät.', material:'Tierarzt- oder Trainingsabend.', hinweis:'Mit Kinnablage/Kooperation aufbauen.'},
+    {name:'Personenhalbkreis mit Futter', ziel:'Drei Fremdpersonen nacheinander selbstständig aufsuchen.', material:'Bekannte Helfer, später fremde.', hinweis:'Reihenfolge festlegen; kein Druck vom Hundeführer.'},
+    {name:'Personenhalbkreis mit Spiel', ziel:'Mit unterschiedlichen Menschen kontrolliert spielen.', material:'Staffelhelfer rotieren.', hinweis:'Helfer liest Erregung, Hände/Kleidung schützen.'},
+    {name:'Fachgerechtes Tragen 10 + 10 m', ziel:'Sicheres Tragen und Übergeben im passenden Maulkorb.', material:'Kurze Sequenz im Training.', hinweis:'Nur fachgerecht, ruhig und körperlich passend; Hund nicht fallen lassen.'},
+    {name:'Stürzende, aufstehende, weglaufende Person', ziel:'Neutralität bei ungewöhnlichem Menschenbild und Bewegung.', material:'Rollenspiel mit geschultem Helfer.', hinweis:'Nie drohen; Hundeführer bleibt neutral, sichere Leine.'},
+    {name:'Intensives Spiel mit Fremdperson', ziel:'Spieltrieb, Sozialverträglichkeit und Abbruchfähigkeit.', material:'Helferwechsel.', hinweis:'Kein Beißen in Hände/Kleidung; Übererregung früh beenden.'},
+    {name:'Rollende Tonne / bewegtes Großobjekt', ziel:'Erholung bei unerwarteter optischer Einwirkung.', material:'Ball, Mülltonne, Rollkoffer als Vorstufen.', hinweis:'Kein Bedrängen; Fluchtweg lassen.'},
+    {name:'Aufspannender Schirm', ziel:'Gelassenheit bei plötzlicher Formveränderung.', material:'Regenschirm im Alltag.', hinweis:'Distanz nach Reaktion wählen.'},
+    {name:'Humpelnde Person mit flatternder Kleidung', ziel:'Ungewohnte Silhouette und Bewegung neutral verarbeiten.', material:'Spaziergang mit Helfer.', hinweis:'Keine Drohgestik, kein Fixieren.'},
+    {name:'Metallisches Schlaggeräusch', ziel:'Ansprechbar bleiben bei kurzer akustischer Einwirkung.', material:'Werkstatt-/Garagenumfeld.', hinweis:'Gehör schützen; niemals direkt neben dem Hund schlagen.'},
+    {name:'Maschinenlärm in Distanz', ziel:'Ruhig und führbar an Motor-/Werkzeuggeräuschen vorbeigehen.', material:'Rasenmäher, Kompressor, Baustellenrand.', hinweis:'Nie in Abgase führen; Abstand und Gehörbelastung beachten.'},
+    {name:'Personengruppe, Ansprache & Handschlag', ziel:'Sozial neutral bleiben, während HF interagiert.', material:'Markt, Parkplatz, Vereinsabend.', hinweis:'Hund nicht ungefragt anfassen lassen.'},
+    {name:'Passant schneidet von hinten', ziel:'Sichere Reaktion auf engen Überholvorgang.', material:'Breiter Gehweg.', hinweis:'Vorher absprechen; keine Kollision provozieren.'},
+    {name:'Jogger überholen & begegnen', ziel:'Neutralität bei schnellen Personen aus beiden Richtungen.', material:'Laufweg oder Park.', hinweis:'Reizdistanz; Hund sicher außen führen.'},
+    {name:'Fremdhund überholt & begegnet', ziel:'Sozialverträgliche, kontrollierte Hundebegegnung.', material:'Breiter Weg.', hinweis:'Geeigneten Fremdhund wählen; kein Leinenkontakt nötig.'},
+    {name:'Feste Bohle', ziel:'Sicheres Begehen eines schmalen erhöhten Elements.', material:'Niedrige Mauer/Steg als Vorstufe.', hinweis:'Rutschfest, kippsicher, Spotter.'},
+    {name:'Röhre / Tunnel 4 m', ziel:'Kontrolliertes Durchqueren enger Passage.', material:'Tunnelersatz unter Tischen nur als Vorstufe.', hinweis:'Stabil, keine scharfen Kanten; nie hineinschieben.'},
+    {name:'Drei bewegte Materialien', ziel:'Trittsicherheit auf Blech, Folie, Gitterrost, Geröll.', material:'Plane, Matte, Kies, Gitter.', hinweis:'Nur standfeste, verletzungsfreie Materialien.'},
+    {name:'Anzeige aus 30 m', ziel:'Festgelegte Anzeige bei sichtbarer liegender Person.', material:'Wiese mit Helfer.', hinweis:'Helfer belohnt nach Plan; Anzeigeform vorher festlegen.'},
+    {name:'Mini-Trail 30–50 m', ziel:'Motiviertes Verfolgen einer kurzen unbekannten Personenspur.', material:'Park/Gewerbegebiet.', hinweis:'Geruchsartikel sauber verpacken; keine hektische Leinenhilfe.'}
+  ]},
+  { label:'Alltagstricks mit Einsatznutzen', items:[
+    {name:'Umrunden links/rechts', ziel:'Distanzführung, Körperkoordination und Richtungsverständnis.', material:'Bäume, Poller.', hinweis:'Keine Leine um Hindernis wickeln.'},
+    {name:'Aufräumen / Gegenstand in Box', ziel:'Apportieren, Tragen, Ausgeben und Zielgenauigkeit kombinieren.', material:'Spielzeug aufräumen.', hinweis:'Keine verschluckbaren/scharfen Gegenstände.'},
+    {name:'Pfote auf markierten Punkt', ziel:'Einzelpfotenbewusstsein und ruhiges Arbeiten.', material:'Kleine Bodenmarker.', hinweis:'Nicht festhalten oder hochziehen.'},
+    {name:'Verbeugen / Play Bow', ziel:'Aktive Mobilität und kommunikativer Trick.', material:'Zu Hause auf Matte.', hinweis:'Nur schmerzfrei; nicht aus kaltem Zustand forcieren.'},
+    {name:'Schublade/Tür sanft schließen', ziel:'Nasen-/Pfoten-Target, Impulskontrolle und Selbstwirksamkeit.', material:'Leichte, finger- und pfotensichere Tür.', hinweis:'Keine schweren Türen oder Quetschstellen.'},
+    {name:'Foto-Pose auf sicherem Podest', ziel:'Position halten, Umwelt ausblenden, Körpersicherheit.', material:'Bank, Baumstumpf, Aussichtspunkt.', hinweis:'Nie an Absturzkante; Leine sichern.'}
+  ]}
+];
+const ALLTAG_INFO = {};
+ALLTAG_GROUPS.forEach(g=> g.items.forEach(it=> ALLTAG_INFO[it.name] = it));
+
+function repeaterItemAlltag(){
+  const optgroups = ALLTAG_GROUPS.map(g=>`<optgroup label="${g.label}">${opts(g.items.map(i=>i.name))}</optgroup>`).join('');
+  return `<div class="repeater-item">
+    <button type="button" class="remove-row">×</button>
+    <div class="grid2">
+      ${field('Übung / Baustein', `<select class="ex-select">${optgroups}</select>`)}
+      ${field('Ausführung', `<select>${opts(['sicher ausgeführt','mit Einschränkungen','nicht ausgeführt'])}</select>`)}
+    </div>
+    <p class="exercise-info"></p>
+    ${field('Anmerkung', `<input type="text">`)}
+  </div>`;
+}
+function renderAlltagUebungen(){
+  return `<fieldset class="section" data-repeater="Alltagsübung">
+    <legend>Alltagsübungen</legend>
+    <p class="hint" style="margin:0 0 10px;">Übung wählen – Ziel, Alltag/Material-Bezug und Sicherheitshinweis werden automatisch eingeblendet.</p>
+    <div class="repeater-list">${repeaterItemAlltag()}</div>
+    <button type="button" class="add-row" data-add="alltag">+ Übung hinzufügen</button>
+  </fieldset>`;
+}
+function updateExerciseInfo(selectEl){
+  const item = selectEl.closest('.repeater-item');
+  if(!item) return;
+  const infoEl = item.querySelector('.exercise-info');
+  if(!infoEl) return;
+  const data = ALLTAG_INFO[selectEl.value];
+  if(!data){ infoEl.innerHTML = ''; return; }
+  let html = `<strong>Ziel:</strong> ${escapeHtml(data.ziel||'')}`;
+  if(data.material) html += `<br><strong>Alltag/Material:</strong> ${escapeHtml(data.material)}`;
+  if(data.hinweis) html += `<br><strong>Hinweis:</strong> ${escapeHtml(data.hinweis)}`;
+  infoEl.innerHTML = html;
+}
+function refreshAllExerciseInfo(){
+  $$('#panel .ex-select').forEach(updateExerciseInfo);
+}
+
+function entryTimeKey(e){
+  return `${findVal(e,'Datum')||e.timestamp?.slice(0,10)||''}|${findVal(e,'Uhrzeit')||e.timestamp?.slice(11,16)||''}|${e.timestamp||''}`;
+}
+function previousEntryForDiscipline(disciplineId){
+  const list=entries.filter(e=>e.discipline===disciplineId).slice().sort((a,b)=>entryTimeKey(b).localeCompare(entryTimeKey(a)));
+  if(!editingEntryId) return list[0]||null;
+  const idx=list.findIndex(e=>e.id===editingEntryId);
+  return idx>=0 ? (list[idx+1]||null) : (list[0]||null);
+}
+function previousGroupSummaries(entry){
+  const lines=[];
+  (entry.groups||[]).forEach(group=>(group.items||[]).forEach((item,index)=>{
+    const name=itemValue(item,'Übung')||itemValue(item,'Übung / Baustein')||itemValue(item,'Gerät')||itemValue(item,'Kürzel / Initialen')||itemValue(item,'Rolle')||`${group.label} ${index+1}`;
+    const values=(item||[]).filter(f=>/Ergebnis|Ausführung|Gefunden|Zeit bis Fund|Bewertung|Anzeigequalität|Verlauf der Suche|Suchqualität|Führbarkeit des Hundes|Verhalten an der Versteck-|Beobachtung \/ nächstes Lernziel|Selbständigkeit|Versteckart|Sichtbarkeit|Verhalten im Versteck|Geruchsintensität|Zugänglichkeit|Zeit im Versteck|Höhe \/ Tiefe|Lage im Suchgebiet|Geruchsaustritt|Individuelle Ablenkungen/.test(f.label)&&f.value).map(f=>`${f.label}: ${f.value}`);
+    if(values.length) lines.push({label:name,value:values.join(' · ')});
+  }));
+  return lines.slice(0,8);
+}
+function renderPreviousResult(){
+  const prev=previousEntryForDiscipline(activeTab);
+  if(!prev) return `<div class="previous-result"><div class="head"><strong>Vergleich zum Voreintrag</strong></div><span class="hint">In dieser Trainingsart ist noch kein früherer Eintrag vorhanden.</span></div>`;
+  const wanted=['Gesamtbewertung','Anzeigequalität','Anzeige erfolgt','Zusammenarbeit / Führungsverhalten','Auffälligkeiten','Fehlverhalten bei der Anzeige','Gesamteindruck / Auffälligkeiten','Fortschritt im Vergleich zur letzten Einheit','Zustand nach dem Training','Weitere relevante Beobachtungen','Position','Sichtbarkeit für den Hund','Zustand / Bewegung','Geruchsintensität','Zugänglichkeit'];
+  const rows=wanted.map(label=>({label,value:findVal(prev,label)})).filter(r=>r.value);
+  const groupRows=previousGroupSummaries(prev);
+  const planned=findVal(prev,'Nächster kleinster Trainingsschritt')||findVal(prev,'Nächste kleinste Trainingsstufe');
+  const date=findVal(prev,'Datum')||prev.timestamp?.slice(0,10)||'–';
+  const time=findVal(prev,'Uhrzeit')||'';
+  const place=findVal(prev,'Ort / Übungsstätte');
+  const rating=findVal(prev,'Gesamtbewertung');
+  return `<div class="previous-result">
+    <div class="head"><strong>Ergebnis des Voreintrags</strong><span>${escapeHtml(date)}${time?' · '+escapeHtml(time)+' Uhr':''}${place?' · '+escapeHtml(place):''}</span></div>
+    ${(rows.length||groupRows.length)?`<dl>${[...rows,...groupRows].map(r=>`<dt>${escapeHtml(r.label)}</dt><dd>${escapeHtml(r.value)}</dd>`).join('')}</dl>`:'<span class="hint">Der Voreintrag enthält noch keine auswertbare Ergebnisangabe.</span>'}
+    ${planned?`<div class="planned"><strong>Damals als nächster Schritt notiert:</strong><br>${escapeHtml(planned)}</div>`:''}
+    ${rating?`<div class="rating-delta" id="rating-delta" data-prior-rating="${escapeHtml(rating)}">Aktuelle Gesamtbewertung auswählen, um den Bewertungsunterschied zu sehen.</div>`:''}
+  </div>`;
+}
+
+function renderLearningFields(includeProgress=true){
+  return `${includeProgress?field('Lernschritt seit dem vorherigen Training', `<textarea rows="2" placeholder="Was ist stabiler, selbstständiger oder noch schwieriger geworden?"></textarea>`):''}
+    ${field('Nächster kleinster Trainingsschritt', `<textarea rows="2" placeholder="Welche eine kleine Steigerung oder Vereinfachung folgt daraus?"></textarea>`)}`;
+}
+
+function updateRatingDelta(){
+  const box=$('#rating-delta'); if(!box)return;
+  const current=labeledControl('Gesamtbewertung')?.value||'', prior=box.dataset.priorRating||'';
+  box.classList.remove('better','worse');
+  if(!current){box.textContent='Aktuelle Gesamtbewertung auswählen, um den Bewertungsunterschied zu sehen.';return;}
+  const pi=RESULT_SCALE.indexOf(prior),ci=RESULT_SCALE.indexOf(current);
+  if(pi<0||ci<0){box.textContent=`Voreintrag: ${prior} · heute: ${current}`;return;}
+  const diff=pi-ci;
+  if(diff>0){box.textContent=`↗ Bewertungsunterschied: um ${diff} Stufe${diff===1?'':'n'} verbessert (${prior} → ${current})`;box.classList.add('better');}
+  else if(diff<0){box.textContent=`↘ Bewertungsunterschied: um ${Math.abs(diff)} Stufe${Math.abs(diff)===1?'':'n'} niedriger (${prior} → ${current})`;box.classList.add('worse');}
+  else box.textContent=`→ Gleiche Bewertungsstufe wie im Voreintrag: ${current}`;
+}
+
+function renderResultSearch(){
+  return `<fieldset class="section result">
+    <legend>Ergebnis</legend>
+    ${renderPreviousResult()}
+    <div class="grid2">
+      ${field('Anzeigequalität', `<select>${resultOpts(['spontan und sauber','sicher und anhaltend','kurz / unterbrochen','verzögert','musste bestätigt werden','abgelenkt','unmotiviert','Anzeige abgebrochen','keine Anzeige'])}</select>`)}
+      ${field('Gesamtbewertung', `<select>${resultOpts(RESULT_SCALE)}</select>`)}
+    </div>
+    ${field('Zusammenarbeit / Führungsverhalten', `<textarea rows="2"></textarea>`)}
+    ${field('Auffälligkeiten', `<textarea rows="2"></textarea>`)}
+    ${renderLearningFields(true)}
+  </fieldset>`;
+}
+function renderResultIndication(){
+  return `<fieldset class="section result">
+    <legend>Ergebnis</legend>
+    ${renderPreviousResult()}
+    <div class="grid2">
+      ${field('Anzeige erfolgt', `<select>${resultOpts(['ja, spontan','ja, nach Aufforderung','nein'])}</select>`)}
+      ${field('Gesamtbewertung', `<select>${resultOpts(RESULT_SCALE)}</select>`)}
+    </div>
+    ${field('Fehlverhalten bei der Anzeige', `<textarea rows="2"></textarea>`)}
+    ${renderLearningFields(true)}
+  </fieldset>`;
+}
+function renderResultGeneric(){
+  return `<fieldset class="section result">
+    <legend>Gesamtergebnis</legend>
+    ${renderPreviousResult()}
+    <div class="grid2">${field('Gesamtbewertung', `<select>${resultOpts(RESULT_SCALE)}</select>`)}</div>
+    ${field('Gesamteindruck / Auffälligkeiten', `<textarea rows="2"></textarea>`)}
+    ${renderLearningFields(true)}
+  </fieldset>`;
+}
+
+function renderNotes(){
+  return `<fieldset class="section">
+    <legend>Sonstiges &amp; Freitext</legend>
+    ${field('Weitere relevante Beobachtungen', `<textarea rows="2"></textarea>`)}
+    ${field('Freitext / Notizen', `<textarea rows="3"></textarea>`)}
+  </fieldset>`;
+}
+function repeaterItemZusatz(){
+  return `<div class="repeater-item">
+    <button type="button" class="remove-row">×</button>
+    <div class="grid2">
+      ${field('Bezeichnung', `<input type="text" placeholder="z. B. Trainingsgruppe">`)}
+      ${field('Wert', `<input type="text">`)}
+    </div>
+  </div>`;
+}
+function renderCustomFields(){
+  return `<fieldset class="section" data-repeater="Zusätzliches Feld">
+    <legend>Zusätzliche Parameter (frei definierbar)</legend>
+    <div class="repeater-list"></div>
+    <button type="button" class="add-row" data-add="zusatz">+ Feld hinzufügen</button>
+  </fieldset>`;
+}
+
+const SECTION_RENDERERS = {
+  weather: renderWeather, terrain: renderTerrain, helpers: renderHelpers,
+  rubble: renderRubble, indication: renderIndication,
+  obedience: renderObedience, agility: renderAgility,
+  physioinfo: renderPhysioInfo, physiowarmup: renderPhysioWarmup, physiomain: renderPhysioMain, physiocooldown: renderPhysioCooldown,
+  alltagsuebungen: renderAlltagUebungen,
+  resultSearch: renderResultSearch, resultIndication: renderResultIndication, resultGeneric: renderResultGeneric, resultPhysio: renderResultPhysio,
+};
+const REPEATER_TEMPLATES = {
+  helfer: repeaterItemHelfer, uebung: repeaterItemUebung, geraet: repeaterItemGeraet, zusatz: repeaterItemZusatz,
+  physiowarmup: ()=>repeaterItemPhysio(PHYSIO_WARMUP_EXERCISES),
+  physiomain: ()=>repeaterItemPhysio(PHYSIO_MAIN_EXERCISES),
+  physiocooldown: ()=>repeaterItemPhysio(PHYSIO_COOLDOWN_EXERCISES),
+  alltag: repeaterItemAlltag
+};
+
+/* ============================================================
+   MEHRSTUFIGES FORMULAR JE REITER
+   (Rahmen & Wetter / Ablauf & Bedingungen / Ergebnis / Notizen & Abschluss –
+   damit nicht mehr durch ein einziges langes Formular gescrollt werden muss)
+   ============================================================ */
+function buildSteps(meta){
+  const resultSecs = meta.sections.filter(s=>RESULT_SECTION_KEYS.includes(s));
+  const otherSecs = meta.sections.filter(s=>s!=='weather' && !RESULT_SECTION_KEYS.includes(s));
+  const steps = [];
+  steps.push({ title:'Rahmen &amp; Wetter', html: renderFrame()+renderPlaceTools()+(meta.sections.includes('weather')?renderWeather():'') });
+  if(otherSecs.length) steps.push({ title:'Ablauf &amp; Bedingungen', html: otherSecs.map(s=>SECTION_RENDERERS[s]()).join('') });
+  if(resultSecs.length) steps.push({ title:'Ergebnis', html: resultSecs.map(s=>SECTION_RENDERERS[s]()).join('') });
+  steps.push({ title:'Notizen &amp; Abschluss', html: renderNotes()+renderCustomFields() });
+  return steps;
+}
+
+function renderDisciplineForm(id, meta){
+  const steps = buildSteps(meta);
+  const stepperHtml = `<div class="stepper" id="stepper">${steps.map((s,i)=>`<button type="button" class="step-btn" data-step-index="${i}"><strong>Schritt ${i+1}/${steps.length}</strong>${s.title}</button>`).join('')}</div>`;
+  const pagesHtml = steps.map((s,i)=>`<div class="step-page" data-step-index="${i}">${s.html}</div>`).join('');
+  return `
+    <form id="entry-form" novalidate>
+      ${stepperHtml}
+      ${pagesHtml}
+      <div class="form-message" id="form-message" role="status"></div>
+      <div class="step-nav-actions">
+        <button type="button" class="secondary" id="btn-step-prev">← Zurück</button>
+        <div class="right">
+          <button type="button" class="secondary" id="btn-clear-entry">Verwerfen</button>
+          <button type="button" class="secondary" id="btn-step-next">Weiter →</button>
+          <button type="button" class="primary" id="btn-save-entry">Eintrag speichern</button>
+        </div>
+      </div>
+    </form>
+    <div id="continue-banner-slot"></div>
+    <details class="compact-details" id="tab-entries-details">
+      <summary>Bisherige Einträge – ${escapeHtml(meta.label)} (<span id="tab-entries-count">0</span>)</summary>
+      <div class="entries-head">
+        <div>
+          <button class="secondary" id="btn-export-tab" type="button">Excel-Auswertung dieser Kategorie</button>
+          <span class="hint" id="export-status-tab"></span>
+        </div>
+      </div>
+      <div id="entries-list"></div>
+    </details>`;
+}
+
+function renderSpontanTab(){
+  return `
+    <div class="spontan-box">
+      <div class="spontan-note">Dieser Reiter wird <strong>nicht automatisch gespeichert</strong> – ideal für spontane
+      Zusatzübungen zwischendurch. Der Text geht beim Wechseln des Reiters bzw. Neuladen der Seite verloren,
+      außer er wird ausdrücklich ins Trainingstagebuch übernommen.</div>
+      <textarea id="spontan-text" placeholder="Kurznotiz zur spontanen Übung …">${spontanDraft}</textarea>
+      <div class="spontan-save-row">
+        <label class="field" style="max-width:280px;"><span>Doch ins Tagebuch übernehmen als</span>
+          <select id="spontan-target">${Object.entries(allDisciplines()).map(([id,m])=>`<option value="${id}">${escapeHtml(m.label)}</option>`).join('')}</select>
+        </label>
+        <button class="primary" id="btn-spontan-save" type="button">Übernehmen &amp; speichern</button>
+        <button class="secondary" id="btn-spontan-clear" type="button">Verwerfen</button>
+      </div>
+    </div>`;
+}
+
+function showStep(index){
+  const pages = $$('#entry-form .step-page');
+  if(!pages.length) return;
+  currentStep = Math.max(0, Math.min(index, pages.length-1));
+  pages.forEach((p,i)=> p.classList.toggle('active', i===currentStep));
+  $$('#stepper .step-btn').forEach((b,i)=>{
+    b.classList.toggle('active', i===currentStep);
+    b.classList.toggle('done', i<currentStep);
+  });
+  const prevBtn=$('#btn-step-prev'), nextBtn=$('#btn-step-next'), saveBtn=$('#btn-save-entry');
+  if(prevBtn) prevBtn.style.visibility = currentStep===0 ? 'hidden':'visible';
+  const isLast = currentStep===pages.length-1;
+  if(nextBtn) nextBtn.style.display = isLast ? 'none':'inline-block';
+  if(saveBtn) saveBtn.style.display = isLast ? 'inline-block':'none';
+}
+function wireStepper(){
+  $$('#stepper .step-btn').forEach((b,i)=> b.onclick=()=>showStep(i));
+  const prevBtn=$('#btn-step-prev'), nextBtn=$('#btn-step-next');
+  if(prevBtn) prevBtn.onclick = ()=>showStep(currentStep-1);
+  if(nextBtn) nextBtn.onclick = ()=>showStep(currentStep+1);
+  showStep(0);
+}
+
+function wireFormAndList(meta){
+  wireRepeaters();
+  wireChips();
+  wireDrinnenToggle();
+  wireDistanceButton();
+  wirePlaceTemplates();
+  wireTaktikImport();
+  wireRatingComparison();
+  wireWeatherOnlineButton();
+  wireStepper();
+  refreshAllExerciseInfo();
+  $('#btn-clear-entry').onclick = ()=>{ editingEntryId=null; pendingHomeworkSource=null; pendingTaktikImport=null; render(); };
+  $('#btn-save-entry').onclick = onSaveEntry;
+  renderEntryList(activeTab, meta);
+  const cnt = $('#tab-entries-count');
+  if(cnt) cnt.textContent = entries.filter(e=>e.discipline===activeTab).length;
+  const expBtn = $('#btn-export-tab');
+  if(expBtn) expBtn.onclick = ()=> exportExcel(activeTab, 'export-status-tab');
+}
+
+function wireRatingComparison(){
+  const control=labeledControl('Gesamtbewertung');
+  if(control) control.addEventListener('change',updateRatingDelta);
+  updateRatingDelta();
+}
+
+function wirePlaceTemplates(){
+  const select=$('#place-template-select'); if(!select) return;
+  select.onchange=()=>{
+    if(select.value) applyPlaceTemplate(select.value);
+    else{
+      updatePlaceButtons();
+      $('#remember-new-place').checked=true;
+      setPlaceStatus('Freie Eingabe: Beim Speichern kann daraus automatisch eine neue Gebietsvorlage entstehen.');
+    }
+  };
+  $('#btn-place-save').onclick=()=>storeCurrentPlace(false,false);
+  $('#btn-place-update').onclick=()=>storeCurrentPlace(true,false);
+  $('#btn-place-delete').onclick=()=>{
+    const id=select.value, p=trainingPlaces.find(x=>x.id===id); if(!p)return;
+    if(!confirm(`Gebietsvorlage „${p.name}“ löschen? Bereits gespeicherte Trainingseinträge bleiben erhalten.`))return;
+    trainingPlaces=trainingPlaces.filter(x=>x.id!==id);
+    dirtySinceSave=true; saveLocalState(); renderStorageBar(); rebuildPlaceSelect('');
+    $('#remember-new-place').checked=false; setPlaceStatus('Gebietsvorlage wurde gelöscht. Die Trainingseinträge wurden nicht verändert.',true);
+  };
+  updatePlaceButtons();
+}
+
+/* ============================================================
+   IMPORT: Daten aus dem eigenständigen Flächensuche-Taktik-Assistenten
+   (Datei-Brücke per JSON – keine gemeinsame Codebasis, siehe Hinweis im
+   Info-Dialog). Öffnet einen NEUEN, vorausgefüllten Flächensuche-Eintrag
+   (entspricht dem ursprünglich vorgesehenen Ablauf), statt nur in den
+   gerade offenen Trainingsblock hineinzuschreiben.
+   ============================================================ */
+const TAKTIK_PRECIP_MAP = {none:'kein', drizzle:'Nieselregen', rain:'Regen', heavy:'Regen', snow:'Schnee'};
+const TAKTIK_WINDSPEED_MAP = {calm:'windstill', light:'leicht', moderate:'mäßig', strong:'stark/böig'};
+function formatDurationForNotes(ms){
+  if(!Number.isFinite(ms) || ms<=0) return null;
+  const totalMin=Math.round(ms/60000);
+  if(totalMin<1) return null;
+  if(totalMin<60) return totalMin+' min';
+  const h=Math.floor(totalMin/60), m=totalMin%60;
+  return h+' h'+(m?' '+m+' min':'');
+}
+// Baut den vollständigen Notiztext aus den Taktik-Assistent-Daten. Bei mode "einsatz"
+// (echter Einsatz statt Training/Prüfung) werden bewusst KEINE realen Lage-/Personen-/
+// Patientendaten in dieses Trainingsprogramm übernommen – nur geografische/taktische
+// Angaben und Fund-Koordinaten/-Zeiten. Reale Einsatzdaten (inkl. xABCDE, Vitalwerte,
+// Leitsymptome, Maßnahmenprotokoll, Dringlichkeitseinschätzung, Freitext-Notizen je Fund)
+// gehören ins Einsatzprotokoll, nicht ins Trainingstagebuch.
+function buildTaktikNotesSummary(data, isRealEinsatz){
+  const a=data.auftrag||{}, g=data.gebiet||{}, l=data.lage||{}, z=data.zusammenfassung||{}, funde=data.funde||[], t=data.track||null;
+  const lines=[`Neuer Flächensuche-Eintrag, vorausgefüllt aus dem eigenständigen Taktik-Assistenten (${data.mode||'–'}), Export vom ${data.exportedAt?new Date(data.exportedAt).toLocaleString('de-DE'):'–'}:`];
+  if(isRealEinsatz) lines.push('Hinweis: Da als „Einsatz“ markiert, wurden Lagebeschreibung, Auftrag/Grenzen-Freitext, Gefahren-/Prioritätentext sowie alle Fund-Befunde (xABCDE, Vitalwerte, Leitsymptome, Maßnahmenprotokoll, Dringlichkeitseinschätzung, Notizen) bewusst NICHT übernommen (Datenschutz) – nur Ort, Wetter, feste Taktik-Regeln und Fund-Koordinaten/-Zeiten.');
+  if(a.incidentWhat && !isRealEinsatz) lines.push('Lage: '+a.incidentWhat);
+  if(a.assignedArea && !isRealEinsatz) lines.push('Auftrag/Grenzen: '+a.assignedArea);
+  if(a.knownHazards && !isRealEinsatz) lines.push('Gemeldete Gefahren: '+a.knownHazards);
+  if(l.priorityInfo && !isRealEinsatz) lines.push('Prioritäten/Hinweise: '+l.priorityInfo);
+  if(l.risiken && l.risiken.length){
+    const riskLabel={trafficRisk:'Verkehr/Bahn',waterRisk:'tiefes Wasser',dropRisk:'Absturz/unklare Begehbarkeit',stormRisk:'Gewitter/Sturm',wildlifeRisk:'Jagd/Wild/Nutztiere',darkRisk:'Dunkelheit/schlechte Sicht'};
+    lines.push('Angehakte Gefahren im Taktik-Assistenten: '+l.risiken.map(k=>riskLabel[k]||k).join(', '));
+  }
+  if(z.strategyName) lines.push('Taktische Zusammenfassung: '+z.strategyName);
+  if(z.strategySteps && z.strategySteps.length) lines.push('Vorgehen: '+z.strategySteps.join(' '));
+  if(z.windAdvice) lines.push('Windhinweis: '+z.windAdvice);
+  // z.warnings kann bei angehakten Gefahren zusätzlich den freien Text aus "Gefahren" (Schritt 1)
+  // enthalten ("Aus Schritt 1 gemeldete Gefahr: …") – dieser wird im Einsatz-Modus ebenfalls herausgefiltert.
+  const sicherheitshinweise=(z.warnings||[]).filter(ww=> !isRealEinsatz || !/^Aus Schritt 1 gemeldete Gefahr:/.test(ww));
+  if(sicherheitshinweise.length) lines.push('Sicherheitshinweise: '+sicherheitshinweise.join(' '));
+
+  if(t){
+    const parts=[];
+    if(t.quelle==='live-gps'){
+      if(Number.isFinite(t.streckeMeter)) parts.push(t.streckeMeter+' m eigene Strecke (Live-GPS)');
+      const dur=formatDurationForNotes(t.aktiveDauerMs); if(dur) parts.push('aktive Dauer '+dur);
+      if(Number.isFinite(t.punkte)) parts.push(t.punkte+' Trackpunkte');
+    } else if(t.quelle==='datei-import'){
+      parts.push('Track aus Datei importiert (Höhendaten ausgewertet)');
+    }
+    if(t.hoehendaten){
+      const h=t.hoehendaten;
+      if(Number.isFinite(h.minEle) && Number.isFinite(h.maxEle)){
+        parts.push(h.reliable
+          ? `Höhe ${Math.round(h.minEle)}–${Math.round(h.maxEle)} m, Gefälle ca. ${h.slopePercent.toFixed(1)}%, Richtung ${h.aspectCompass} (${h.positionClass})`
+          : `Höhe ${Math.round(h.minEle)}–${Math.round(h.maxEle)} m (${h.positionClass}, Hangrichtung nicht zuverlässig bestimmbar)`);
+      }
+    }
+    if(parts.length) lines.push('Track-Zusammenfassung: '+parts.join(', ')+'.');
+  }
+
+  if(funde.length){
+    funde.forEach(f=>{
+      let line=`Fundmeldung ${f.nr} (${f.zeit} Uhr): ${f.meldung}`;
+      if(!isRealEinsatz){
+        if(f.xabcde) line += ` – xABCDE: x:${f.xabcde.x} A:${f.xabcde.A} B:${f.xabcde.B} C:${f.xabcde.C} D:${f.xabcde.D} E:${f.xabcde.E}`;
+        if(f.leitsymptome && f.leitsymptome.length) line += `; Leitsymptome: ${f.leitsymptome.join(', ')}`;
+        if(f.dringlichkeit && f.dringlichkeit.level && f.dringlichkeit.level!=='unauffaellig') line += `; Dringlichkeit (regelbasiert, keine Diagnose): ${f.dringlichkeit.level}`;
+        if(f.massnahmenprotokoll && f.massnahmenprotokoll.length) line += `; Maßnahmen: ${f.massnahmenprotokoll.map(m=>m.zeit+' Uhr '+m.text).join(' / ')}`;
+        if(f.notizen) line += ` – ${f.notizen}`;
+      }
+      lines.push(line);
+    });
+  }
+  lines.push('(Regelbasierte Zusammenfassung des Taktik-Assistenten, kein KI-Modell – bitte um Suchqualität, Führbarkeit, Anzeigequalität, Verhalten bei den Versteckpersonen und Bewertung ergänzen.)');
+  return lines.join('\n');
+}
+// Öffnet – statt nur in den aktuell offenen Block zu schreiben – einen NEUEN,
+// bereits vorausgefüllten Flächensuche-Eintrag (Ort, Wetter, Gelände-Vorschläge,
+// Suchdauer aus dem Live-GPS-Track, vollständige Zusammenfassung inkl. Fundpunkten
+// in den Notizen). Entspricht dem ursprünglich vorgesehenen Ablauf: Datei einlesen
+// → vorbereiteter Eintrag öffnet sich automatisch → Bewertung ergänzen.
+/* ============================================================
+   v2.9: Strukturierte Übernahme aus dem Flächensuchassistenten
+   (Verlaufsprotokoll, Funde, Abschlussauswertung Hund/Hundeführer,
+   Handlungstipps) und Grundlage für den Teamfortschritt.
+   ============================================================ */
+let pendingTaktikImport = null;
+const TAKTIK_EVAL_LABELS = {
+  evalHandlerBriefing:'Auftrag und Gefahrenlage', evalHandlerTactics:'Wind, Gelände und Taktik',
+  evalHandlerCoverage:'nachvollziehbare Gebietsabdeckung', evalHandlerDogReading:'Lesen und Unterstützen des Hundes',
+  evalHandlerCommunication:'Funk und Zusammenarbeit', evalHandlerSafety:'sichere und kräfteschonende Bewegung',
+  evalHandlerInquiry:'Befragung: Zeugen und letzter Standort', evalHandlerReport:'Überblick und Abschlussmeldung',
+  evalDogIndependence:'selbstständige Sucharbeit', evalDogWindUse:'Nutzung von Wind und Gelände',
+  evalDogCoverage:'Reichweite und Flächenabdeckung', evalDogMotivation:'Motivation und Konzentration',
+  evalDogManageability:'Ansprechbarkeit und Führbarkeit', evalDogIndication:'Beginn und Stabilität der Anzeige',
+  evalDogPersonBehavior:'Verhalten an der Person', evalDogEndurance:'Kraft und Stabilität bis zum Suchende'
+};
+function taktikEvalLabel(id){ return TAKTIK_EVAL_LABELS[id] || id; }
+/* Skala Assistent 1–5 (5 = beste Stufe) → Skala Tagebuch */
+function taktikScoreToScale(avg){
+  if(!Number.isFinite(avg)) return '';
+  if(avg>=4.5) return 'sehr gut';
+  if(avg>=3.75) return 'gut';
+  if(avg>=3) return 'befriedigend';
+  if(avg>=2) return 'ausreichend';
+  return 'mangelhaft';
+}
+function formatClock(iso){ if(!iso) return '–'; const d=new Date(iso); return isNaN(d)?'–':d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}); }
+function formatMsShort(ms){ if(!Number.isFinite(ms)||ms<0) return ''; const s=Math.round(ms/1000), m=Math.floor(s/60), r=s%60; return `${m}:${String(r).padStart(2,'0')} min`; }
+/* Baut den strukturierten Datensatz, der am Eintrag gespeichert wird. Im Einsatzmodus
+   werden keine personen- oder patientenbezogenen Angaben übernommen. */
+function buildTaktikImportRecord(data, isRealEinsatz){
+  const a=data.auswertung||null, p=data.einsatzprotokoll||{};
+  const rec={
+    quelle:'RH-Flächensuchassistent', exportId:data.exportId||null, exportedAt:data.exportedAt||null,
+    modus:data.mode||null, pruefung:data.pruefung||null, personenGeplant:data.personenzahl||null,
+    protokoll:{
+      begonnenAt:p.begonnenAt||null, beendetAt:p.beendetAt||null, status:p.status||null,
+      ereignisse:(p.ereignisse||[]).map(e=>({zeitAt:e.zeitAt, art:e.art, titel:e.titel, angabe:isRealEinsatz?'':(e.angabe||'')})),
+      pausen:(p.automatischePausen||[]).map(x=>({beginnAt:x.beginnAt, endeAt:x.endeAt})),
+      pruefungsSuchzeiten:(p.pruefungsSuchzeiten||[]).map(c=>({nr:c.cycle, startedAt:c.startedAt, stoppedAt:c.stoppedAt, elapsedMs:c.elapsedMs, grund:c.stopReason}))
+    },
+    funde:(data.funde||[]).map(f=>({nr:f.nr, zeitAt:f.zeitAt||null, zeit:f.zeit||''})),
+    auswertung:null,
+    handlungstipps:(data.handlungstipps||[]).map(t=>({stufe:t.stufe, titel:t.titel}))
+  };
+  if(a && !isRealEinsatz){
+    rec.auswertung={
+      bewertetAm:a.evaluatedAt||null, rolle:a.evaluatorRole||null,
+      ergebnis:a.result||null, laufschema:a.planUse&&a.planUse.label||null,
+      hundefuehrer:{ratings:(a.handler&&a.handler.ratings)||{}, average:a.handler&&a.handler.average},
+      hund:{ratings:(a.dog&&a.dog.ratings)||{}, average:a.dog&&a.dog.average},
+      faktoren:a.factors||[], staerken:a.strengths||'', naechsterSchwerpunkt:a.nextFocus||'', bemerkungen:a.notes||''
+    };
+  }
+  return rec;
+}
+function taktikSummaryLines(rec){
+  const lines=[];
+  const pr=rec.protokoll||{};
+  if(pr.begonnenAt) lines.push(`Verlaufsprotokoll: Beginn ${formatClock(pr.begonnenAt)} Uhr${pr.beendetAt?', Ende '+formatClock(pr.beendetAt)+' Uhr':''}${pr.status?' ('+pr.status+')':''}.`);
+  (pr.pruefungsSuchzeiten||[]).forEach(c=>lines.push(`Prüfungssuche ${c.nr}: ${formatMsShort(c.elapsedMs)||'–'}${c.grund?' – '+c.grund:''}.`));
+  if((pr.pausen||[]).length) lines.push(`Pausen (GPS-Schätzung): ${pr.pausen.map(x=>formatClock(x.beginnAt)+'–'+formatClock(x.endeAt)).join(', ')}.`);
+  const ev=(pr.ereignisse||[]).filter(e=>e.titel);
+  if(ev.length) lines.push('Ereignisse: '+ev.map(e=>`${formatClock(e.zeitAt)} ${e.titel}${e.angabe?' ('+e.angabe+')':''}`).join(' · '));
+  const a=rec.auswertung;
+  if(a){
+    const fmt=obj=>Object.entries(obj.ratings||{}).filter(([,v])=>Number.isFinite(v)).map(([k,v])=>`${taktikEvalLabel(k)} ${v}/5`).join('; ');
+    if(a.ergebnis&&a.ergebnis.outcomeLabel) lines.push(`Abschlussauswertung: ${a.ergebnis.outcomeLabel} (${a.ergebnis.documentedFinds||0} von ${a.ergebnis.plannedPersons||0} Fundorten).`);
+    const h=fmt(a.hundefuehrer), d=fmt(a.hund);
+    if(h) lines.push(`Hundeführer (1–5): ${h}.`);
+    if(d) lines.push(`Hund (1–5): ${d}.`);
+    if(a.laufschema) lines.push(`Laufschema: ${a.laufschema}.`);
+    if(a.faktoren&&a.faktoren.length) lines.push(`Einflussfaktoren: ${a.faktoren.join(', ')}.`);
+    if(a.staerken) lines.push(`Stärken: ${a.staerken}`);
+    if(a.bemerkungen) lines.push(`Bemerkungen: ${a.bemerkungen}`);
+  }
+  const tipsShown=(rec.handlungstipps||[]).filter(t=>t.stufe!=='info');
+  if(tipsShown.length) lines.push('Angezeigte Handlungstipps: '+tipsShown.map(t=>t.titel).join(' · '));
+  return lines;
+}
+/* Füllt Helfer-/Versteckpersonen-Blöcke mit Fundzeiten. „Gefunden / angezeigt“ bleibt
+   bewusst offen, weil der Assistent nicht erfasst, ob der Hund selbstständig gefunden hat. */
+function fillHelperItemsFromTaktik(form, rec, filled){
+  const fs=$$('fieldset[data-repeater]', form).find(f=>f.dataset.repeater==='Helfer / Versteckperson');
+  if(!fs) return;
+  const funde=rec.funde||[], zeiten=(rec.protokoll&&rec.protokoll.pruefungsSuchzeiten)||[];
+  const n=Math.max(funde.length, zeiten.length);
+  if(!n) return;
+  const list=$('.repeater-list', fs), addBtn=$('[data-add]', fs);
+  while(list.children.length<n) list.insertAdjacentHTML('beforeend', REPEATER_TEMPLATES[addBtn.dataset.add]());
+  if(typeof wireRemoveButtons==='function') wireRemoveButtons(list);
+  const start=rec.protokoll&&rec.protokoll.begonnenAt?new Date(rec.protokoll.begonnenAt):null;
+  Array.from(list.children).slice(0,n).forEach((item,i)=>{
+    const role=fieldInputByLabel(item,'Rolle'); if(role && !role.value) role.value='Versteckperson';
+    const z=zeiten[i], f=funde[i];
+    let txt='';
+    if(z && Number.isFinite(z.elapsedMs)) txt=formatMsShort(z.elapsedMs)+' (Prüfungsuhr)';
+    else if(f && f.zeitAt && start){ const ms=new Date(f.zeitAt)-start; if(ms>0) txt=formatMsShort(ms)+' ab Suchbeginn'; }
+    const el=fieldInputByLabel(item,'Zeit bis Fund / Anzeige');
+    if(el && txt){ el.value=txt; }
+  });
+  filled.push(`Helfer / Versteckperson: ${n} Block${n===1?'':'e'} mit Fundzeiten`);
+}
+
+function openTaktikImportEntry(data){
+  const isRealEinsatz = data.mode==='einsatz';
+  const g=data.gebiet||{}, w=data.wetter||{}, t=data.track||null;
+  activeTab='flaechensuche'; editingEntryId=null; render();
+  const form=$('#entry-form');
+  if(!form) return { filled:[], isRealEinsatz };
+  const filled=[];
+
+  const placeInput=$('#training-place-name');
+  if(placeInput && g.placeName){ placeInput.value=g.placeName; filled.push('Ort / Übungsstätte'); }
+
+  const box=$('#weather-fields');
+  if(box){
+    if(Number.isFinite(w.temperature)){ const el=fieldInputByLabel(box,'Temperatur (°C)'); if(el){ el.value=Math.round(w.temperature); filled.push('Temperatur'); } }
+    if(w.windSpeedCategory && TAKTIK_WINDSPEED_MAP[w.windSpeedCategory]){ const el=fieldInputByLabel(box,'Wind'); if(el){ el.value=TAKTIK_WINDSPEED_MAP[w.windSpeedCategory]; filled.push('Wind'); } }
+    if(w.windDirectionCompass){ const el=fieldInputByLabel(box,'Windrichtung'); if(el){ el.value='aus '+w.windDirectionCompass; filled.push('Windrichtung'); } }
+    if(w.precipitation && TAKTIK_PRECIP_MAP[w.precipitation]){ const el=fieldInputByLabel(box,'Niederschlag'); if(el){ el.value=TAKTIK_PRECIP_MAP[w.precipitation]; filled.push('Niederschlag'); } }
+    if(w.quelle==='online'){ const el=fieldInputByLabel(box,'Erfassungsart Wetter/Ort'); if(el) el.value='online (GPS, Open-Meteo, BigDataCloud)'; }
+  }
+
+  const VEG_MAP={open:'frei / kurz',mixed:'mittel',dense:'dicht',young:'dicht'};
+  const AREA_MAP={small:'bis 20.000 m²',medium:'20.000–50.000 m²',large:'50.000–100.000 m²',xlarge:'über 100.000 m²'};
+  if(g.vegetation && VEG_MAP[g.vegetation]){ const el=fieldInputByLabel(form,'Bewuchsdichte'); if(el){ el.value=VEG_MAP[g.vegetation]; filled.push('Bewuchsdichte (Vorschlag – bitte prüfen)'); } }
+  if(g.areaSize && AREA_MAP[g.areaSize]){ const el=fieldInputByLabel(form,'Größe Suchgebiet'); if(el){ el.value=AREA_MAP[g.areaSize]; filled.push('Größe Suchgebiet (Vorschlag – bitte prüfen)'); } }
+  if(t && t.quelle==='live-gps'){
+    const dur=formatDurationForNotes(t.aktiveDauerMs);
+    if(dur){ const el=fieldInputByLabel(form,'Dauer der eigentlichen Suche'); if(el){ el.value=dur; filled.push('Dauer der eigentlichen Suche (aus Live-GPS-Track)'); } }
+  }
+
+  const rec=buildTaktikImportRecord(data, isRealEinsatz);
+  pendingTaktikImport=rec;
+  fillHelperItemsFromTaktik(form, rec, filled);
+  if(rec.auswertung){
+    const a=rec.auswertung;
+    const hAvg=a.hundefuehrer.average, dAvg=a.hund.average;
+    const vals=[hAvg,dAvg].filter(Number.isFinite);
+    if(vals.length){
+      const overall=vals.reduce((x,y)=>x+y,0)/vals.length;
+      const ge=fieldInputByLabel(form,'Gesamtbewertung');
+      if(ge && !ge.value){ ge.value=taktikScoreToScale(overall); filled.push('Gesamtbewertung (Vorschlag aus der Abschlussauswertung – bitte prüfen)'); }
+    }
+    const zf=fieldInputByLabel(form,'Zusammenarbeit / Führungsverhalten');
+    const hText=Object.entries(a.hundefuehrer.ratings||{}).filter(([,v])=>Number.isFinite(v)).map(([k,v])=>`${taktikEvalLabel(k)} ${v}/5`).join('; ');
+    if(zf && hText && !zf.value){ zf.value='Hundeführer: '+hText; filled.push('Zusammenarbeit / Führungsverhalten'); }
+    const ns=fieldInputByLabel(form,'Nächster kleinster Trainingsschritt');
+    if(ns && a.naechsterSchwerpunkt && !ns.value){ ns.value=a.naechsterSchwerpunkt; filled.push('Nächster kleinster Trainingsschritt'); }
+  }
+  const notesInput=fieldInputByLabel(form,'Freitext / Notizen');
+  if(notesInput) notesInput.value = buildTaktikNotesSummary(data, isRealEinsatz) + (taktikSummaryLines(rec).length ? '\n\n'+taktikSummaryLines(rec).join('\n') : '');
+
+  showStep(0);
+  window.scrollTo({top:0, behavior:'smooth'});
+  return { filled, isRealEinsatz };
+}
+function handleTaktikImportFile(file){
+  const status = $('#taktik-import-status');
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!data || data.bridgeFormat!=='rhs-taktik-assistent-export') throw new Error('Keine gültige Taktik-Assistent-Exportdatei');
+      const res = openTaktikImportEntry(data);
+      const einsatzHinweis = res.isRealEinsatz ? ' <strong>Als „Einsatz“ markiert:</strong> Lagebeschreibung, Gefahren-/Prioritätentext und alle Fund-Befunde wurden aus Datenschutzgründen bewusst NICHT übernommen.' : '';
+      const statusAfter = $('#taktik-import-status');
+      if(statusAfter) statusAfter.innerHTML = `<span class="place-badge">✓ Neuer Flächensuche-Eintrag geöffnet</span> – vorausgefüllt mit Ort, Wetter, Gelände-Vorschlägen, Suchdauer und vollständiger Zusammenfassung in „Freitext / Notizen“.${res.filled.length?' Automatisch ausgefüllt: '+res.filled.join(', ')+'.':''}${einsatzHinweis} Bitte Suchqualität, Führbarkeit, Anzeigequalität, Verhalten bei den Versteckpersonen und Bewertung ergänzen.`;
+    }catch(err){
+      if(status) status.innerHTML = `<span class="hint" style="color:var(--danger);">Diese Datei konnte nicht gelesen werden – bitte eine vom Taktik-Assistenten über „Für Trainingstagebuch/Einsatzprotokoll exportieren“ erzeugte JSON-Datei wählen.</span>`;
+    }
+  };
+  reader.readAsText(file);
+}
+function openRubbleImportEntry(data){
+  const r=data.state||data.rubble||{}; activeTab='truemmersuche'; editingEntryId=null; render(); const form=$('#entry-form'); if(!form)return [];
+  const filled=[]; const set=(label,val)=>{if(val===undefined||val===null||val==='')return;const el=fieldInputByLabel(form,label);if(el){el.value=val;filled.push(label)}};
+  set('Ort / Übungsstätte',r.place||r.location||'');
+  const visualMap={'durchgehend':'durchgehend','zeitweise':'teilweise','ohne Sichtkontakt':'kein Sichtkontakt','nicht bewertet':'nicht bewertet'};
+  const independentMap={'sehr selbstständig':'sehr selbstständig','mit kleinen Hilfen':'selbstständig mit kleinen Hilfen','wechselhaft':'wechselhaft','häufige Hilfen':'häufige Hilfen','nicht bewertet':'nicht bewertet'};
+  const microMap={'präzise':'präzise an Quelle/Austritt','gut eingegrenzt':'gute Eingrenzung','Geruchspool, Quelle unsicher':'Geruchspool erkannt, Quelle unsicher','vorschnelle Anzeige':'vorschnelle Anzeige','nicht bewertet':'nicht bewertet'};
+  const barkMap={'stabil/anhaltend':'stabiler Verbeller','stabil mit Pausen':'Verbeller mit Pausen','verzögert':'verzögert','abgebrochen':'abgebrochen','nicht bewertet':'nicht bewertet'};
+  const movementMap={'sicher/flüssig':'sicher und flüssig','vorsichtig sicher':'vorsichtig aber sicher','unsicher':'deutlich unsicher','Abbruch':'Abbruch aus Sicherheitsgründen','nicht bewertet':'nicht bewertet'};
+  set('Sichtkontakt HF–Hund',visualMap[r.visualContact]||r.visualContact||''); set('Selbstständigkeit',independentMap[r.independent]||r.independent||''); set('Mikrolokalisierung',microMap[r.micro]||r.micro||''); set('Anzeige in Trümmern',barkMap[r.bark]||r.bark||''); set('Bewegungssicherheit',movementMap[r.movement]||r.movement||'');
+  const vocab={'Mischtrümmer':'Mischschutt','Gebäude':'Gebäudeteile','Tunnel/Kanal':'Tunnel/Röhre','Statik/lose Teile':'lose Teile','Absturz':'Absturz','scharfe Kanten':'scharfe Kanten','Staub':'Staub','Feuer/Hitze':'Hitze/Kälte','Maschinen':'Maschinen/Fahrzeuge','enge Räume':'enge Räume','Gesamtfeld':'Gesamttrümmerfeld','Feinsuche/Mikrolokalisierung':'Feinsuche/Mikrolokalisierung'}; const wantedAll=[...((r.chips&&r.chips.structure)||[]),...((r.chips&&r.chips.hazards)||[]),...((r.chips&&r.chips.pattern)||[])].map(x=>vocab[x]||x); $$('.chip',form).forEach(b=>{if(wantedAll.includes(b.textContent))b.classList.add('on')});
+  const notes=[]; if(String(r.mode||'').toLowerCase()==='prüfung'||String(r.mode||'').toLowerCase()==='pruefung'){const ex=[r.examRule?'Prüfungsgrundlage: '+r.examRule:'',r.examLevel?'Stufe: '+r.examLevel:'',r.examMinutes?'Vorgabe Suchzeit: '+r.examMinutes+' min':'',r.examArea?'Vorgabe Suchfläche: '+r.examArea+' m²':'',r.examPersons?'Vorgabe VP/Verstecke: '+r.examPersons:''].filter(Boolean).join(' | ');if(ex)notes.push(ex);} if(r.brief)notes.push('Lage/Auftrag: '+r.brief); if(r.sectors)notes.push('Sektoren: '+r.sectors); if(r.scentNotes)notes.push('Geruchswege: '+r.scentNotes); if(r.searchMode)notes.push('Suchmodus: '+r.searchMode); if((r.finds||[]).length)notes.push('Fundstellen: '+r.finds.map((f,i)=>`${i+1}. ${f.note||''} | ${f.sector||''} | ${f.source||''} | Anzeige ${f.bark||'nicht bewertet'}`).join(' / ')); if(r.rubbleMarks){const m=r.rubbleMarks; if(m.estimate)notes.push('Lagebild: HF-Vermutung zur Anzeigenposition gespeichert.'); if(m.dogActual)notes.push('Lagebild: tatsächliche Hundeposition bei Anzeige gespeichert.'); if(m.actual)notes.push('Lagebild: tatsächliche VP-Position gespeichert.');} if((r.rubbleDrawing||[]).length)notes.push('Lagebild: eigene Geländezeichnung vorhanden ('+r.rubbleDrawing.length+' Strichzüge).'); if((r.dogMapTrack||[]).length)notes.push('Lagebild: eingezeichneter Hundetrack vorhanden ('+r.dogMapTrack.length+' Abschnitte).'); if((r.events||[]).length)notes.push('Ereignisse: '+r.events.map(e=>`${new Date(e.at).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} ${e.type}${e.note?' – '+e.note:''}`).join(' / '));
+  const ni=fieldInputByLabel(form,'Trainerbeobachtung / nächster Aufbau'); if(ni&&notes.length)ni.value=notes.join('\n'); showStep(0); window.scrollTo({top:0,behavior:'smooth'}); return filled;
+}
+function handleRubbleImportFile(file){const status=$('#rubble-import-status'),reader=new FileReader();reader.onload=ev=>{try{const data=JSON.parse(ev.target.result);if(!data||data.bridgeFormat!=='rhs-truemmersuchassistent-export')throw new Error('Falsches Format');const filled=openRubbleImportEntry(data);const st=$('#rubble-import-status');if(st)st.innerHTML='<span class="place-badge">✓ Neuer Trümmersuche-Eintrag geöffnet</span>'+ (filled.length?' – übernommen: '+filled.join(', '):'') +'. Bitte Angaben prüfen und Trainingsergebnis ergänzen.';}catch(e){if(status)status.innerHTML='<span class="hint" style="color:var(--danger);">Keine gültige Exportdatei des Trümmersuchassistenten.</span>';}};reader.readAsText(file);}
+function wireTaktikImport(){
+  const rb=$('#btn-import-rubble'),ri=$('#rubble-import-input');if(rb&&ri){rb.onclick=()=>ri.click();ri.onchange=()=>{if(ri.files[0])handleRubbleImportFile(ri.files[0]);ri.value='';};}
+  const btn=$('#btn-import-taktik'), input=$('#taktik-import-input');
+  if(btn && input){
+    btn.onclick = ()=> input.click();
+    input.onchange = ()=>{ if(input.files[0]) handleTaktikImportFile(input.files[0]); input.value=''; };
+  }
+  const hwBtn=$('#btn-import-homework'), hwInput=$('#homework-import-input');
+  if(hwBtn && hwInput){
+    hwBtn.onclick=()=>hwInput.click();
+    hwInput.onchange=()=>{if(hwInput.files[0])handleHomeworkImportFile(hwInput.files[0]);hwInput.value='';};
+  }
+  $$('[data-open-homework]').forEach(b=>b.onclick=()=>openHomeworkEntry(b.dataset.openHomework));
+  $$('[data-remove-homework]').forEach(b=>b.onclick=()=>{homeworkInbox=homeworkInbox.filter(h=>h.id!==b.dataset.removeHomework);saveLocalState();render()});
+}
+
+function handleHomeworkImportFile(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data||data.format!=='rh-app-familie'||data.type!=='trainingstagebuch-homework'||!Array.isArray(data.homework)) throw new Error('Falsches Format');
+      const known=new Set(homeworkInbox.map(h=>h.id));
+      const incoming=data.homework.filter(h=>h&&h.id&&h.exercise&&!known.has(h.id));
+      homeworkInbox.push(...incoming);
+      saveLocalState();
+      render();
+      const status=$('#homework-import-status');
+      if(status)status.innerHTML=`<span class="place-badge">✓ ${incoming.length} neue Aufgabe${incoming.length===1?'':'n'} übernommen</span>${data.homework.length!==incoming.length?' · Bereits vorhandene Aufgaben wurden nicht doppelt angelegt.':''}`;
+    }catch(err){
+      const status=$('#homework-import-status');
+      if(status)status.innerHTML='<span class="hint" style="color:var(--danger)">Bitte eine über „Für Trainingstagebuch exportieren“ erzeugte Hausaufgaben-Datei des RH Ausbildungsbegleiters wählen.</span>';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function homeworkDiscipline(track){
+  if(['motivation','anzeige','helper'].includes(track))return'anzeige';
+  if(track==='truemmer')return'truemmersuche';
+  if(['m12','bhvt'].includes(track))return'gehorsam';
+  if(track==='m13')return'gewandtheit';
+  if(track==='m2')return'flaechensuche';
+  return'alltagstraining';
+}
+function openHomeworkEntry(id){
+  const h=homeworkInbox.find(x=>x.id===id);if(!h)return;
+  const ex=h.exercise||{};
+  pendingHomeworkSource={homeworkId:h.id,exerciseId:ex.id,team:h.team||null};
+  activeTab=homeworkDiscipline(ex.track);editingEntryId=null;mainView='erfassen';render();
+  const place=$('#training-place-name');if(place)place.value='Ort noch festlegen';
+  const note=fieldInputByLabel($('#entry-form'),'Freitext / Notizen');
+  if(note)note.value=[`Hausaufgabe aus RH Ausbildungsbegleiter für ${h.team?.handlerName||'Hundeführer/in'} & ${h.team?.dogName||'Hund'}`,`Übung: ${ex.title||'–'}`,`Ziel: ${ex.goal||'–'}`,'Aufbau:',...(ex.steps||[]).map((s,i)=>`${i+1}. ${s}`),ex.humanDryRun?`Trockenübung ohne Hund: ${ex.humanDryRun}`:'',ex.playfulPreparation?`Spielerische Vorbereitung: ${ex.playfulPreparation}`:'',`Belohnung: ${ex.reward||'–'}`,`Erfolgskriterium: ${ex.success||'–'}`,`Nächster Schritt: ${ex.next||'–'}`,`Bei Schwierigkeiten: ${ex.back||'–'}`,(ex.variants||[]).length?'Varianten: '+ex.variants.join(' | '):''].filter(Boolean).join('\n');
+  showStep(0);window.scrollTo({top:0,behavior:'smooth'});
+  const status=$('#homework-import-status');if(status)status.innerHTML='<span class="place-badge">✓ Aufgabe als neuer Trainingseintrag geöffnet</span> · Bitte Ort und Rahmenbedingungen ergänzen, Übung durchführen und Ergebnis speichern.';
+}
+
+function haversineKm(a, b){
+  const rad = x=>x*Math.PI/180;
+  const earthKm = 6371;
+  const dLat = rad(b.lat-a.lat), dLon = rad(b.lon-a.lon);
+  const h = Math.sin(dLat/2)**2 + Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return earthKm * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+}
+function wireDistanceButton(){
+  const btn = $('#btn-calc-distance');
+  const status = $('#distance-status');
+  if(!btn || !status) return;
+  btn.onclick = ()=>{
+    if(!Number.isFinite(privateHome.lat) || !Number.isFinite(privateHome.lon)){
+      status.textContent = 'Bitte zuerst in den Team-Daten den Heimatpunkt speichern.';
+      return;
+    }
+    requestPosition(coords=>{
+      $('#distance-home').value = haversineKm(privateHome, coords).toFixed(1);
+      status.textContent = 'Luftlinie zum aktuellen Standort wurde lokal berechnet.';
+    }, status);
+  };
+}
+
+/* ============================================================
+   TAGESFORTSETZUNG: nach dem Speichern direkt den nächsten
+   Übungsblock desselben Tages anlegen können
+   ============================================================ */
+function timeStringToMinutes(t){ if(!t) return NaN; const parts=t.split(':').map(Number); return parts[0]*60+parts[1]; }
+function renderContinueBanner(){
+  const slot=$('#continue-banner-slot'); if(!slot) return;
+  if(!lastSavedContext){ slot.innerHTML=''; return; }
+  const meta = allDisciplines();
+  const otherDisciplines = Object.keys(meta).filter(id=>id!==activeTab);
+  slot.innerHTML = `<div class="continue-banner">
+    <strong>Block gespeichert.</strong> Gab es am selben Tag noch einen weiteren Übungsblock (z. B. nach einer Pause)?
+    <div class="chips">
+      <button type="button" data-continue="${activeTab}">+ nochmal ${escapeHtml(meta[activeTab].label)}</button>
+      ${otherDisciplines.map(id=>`<button type="button" data-continue="${id}">+ ${escapeHtml(meta[id].label)}</button>`).join('')}
+      <button type="button" class="btn-link" id="btn-dismiss-continue">nein, fertig für heute</button>
+    </div>
+  </div>`;
+  $$('[data-continue]', slot).forEach(btn=> btn.onclick = ()=> startContinuationBlock(btn.dataset.continue));
+  const dismissBtn = $('#btn-dismiss-continue', slot);
+  if(dismissBtn) dismissBtn.onclick = ()=>{ lastSavedContext=null; slot.innerHTML=''; };
+}
+function startContinuationBlock(disciplineId){
+  activeTab = disciplineId;
+  editingEntryId = null;
+  render();
+  const ctx = lastSavedContext; if(!ctx) return;
+  const placeInput=$('#training-place-name');
+  if(placeInput && ctx.place && ctx.place!=='(spontane Übung)') placeInput.value=ctx.place;
+  const distInput=$('#distance-home');
+  if(distInput && ctx.distanceKm) distInput.value=ctx.distanceKm;
+  if(ctx.weather){
+    const wf=$('#weather-fields');
+    if(wf){
+      const setV=(label,val)=>{ const inp=fieldInputByLabel(wf,label); if(inp&&val) inp.value=val; };
+      setV('Temperatur (°C)', ctx.weather.temp);
+      setV('Wind', ctx.weather.wind);
+      setV('Windrichtung', ctx.weather.windDir);
+      setV('Niederschlag', ctx.weather.niederschlag);
+      setV('Licht-/Sichtverhältnisse', ctx.weather.licht);
+    }
+  }
+  const dateInput = $('.frame-row input[type="date"]');
+  if(dateInput && ctx.date) dateInput.value=ctx.date;
+  if(ctx.time){
+    const nowMin = timeStringToMinutes(localTimeValue());
+    const prevMin = timeStringToMinutes(ctx.time);
+    if(Number.isFinite(nowMin) && Number.isFinite(prevMin)){
+      const diff = nowMin-prevMin;
+      const pauseInput = document.getElementById('pause-vor-block');
+      if(pauseInput && diff>0 && diff<600) pauseInput.value = diff+' Min';
+    }
+  }
+  showStep(0);
+  if(placeInput) placeInput.focus();
+}
+
+function enterEditMode(entry){
+  editingEntryId = entry.id;
+  activeTab = entry.discipline;
+  renderTabbar();
+  const meta = allDisciplines()[activeTab];
+  $('#panel').innerHTML = renderDisciplineForm(activeTab, meta);
+  wireFormAndList(meta);
+  populateForm(entry);
+  const datumTxt = findVal(entry,'Datum') || entry.timestamp.slice(0,10);
+  const uhrzeitTxt = findVal(entry,'Uhrzeit');
+  $('#entry-form').insertAdjacentHTML('afterbegin',
+    `<div class="edit-banner">Eintrag vom ${datumTxt}${uhrzeitTxt?' um '+escapeHtml(uhrzeitTxt)+' Uhr':''} wird bearbeitet.
+     <button type="button" id="btn-cancel-edit" class="btn-link">Bearbeitung abbrechen</button></div>`);
+  $('#btn-cancel-edit').onclick = ()=>{ editingEntryId=null; render(); };
+  $('#btn-save-entry').textContent = 'Änderungen speichern';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function populateForm(entry){
+  const form = $('#entry-form');
+  $$('.frame-row label.field, fieldset.section:not([data-repeater]) label.field', form).forEach(l=>{
+    const label = l.querySelector('span').textContent;
+    const match = entry.basic.find(b=>b.label===label);
+    if(!match) return;
+    const inputEl = l.querySelector('input,select,textarea');
+    if(inputEl.type==='checkbox') inputEl.checked = match.value==='ja';
+    else inputEl.value = match.value;
+  });
+  const chk = $('#chk-drinnen');
+  if(chk){ const wf = $('#weather-fields'); if(wf) wf.style.display = chk.checked ? 'none':'grid'; }
+  $$('[data-chipgroup]', form).forEach(g=>{
+    const grp = (entry.chips||[]).find(c=>c.label===g.dataset.chipgroup);
+    if(!grp) return;
+    $$('.chip', g).forEach(chip=>{ if(grp.values.includes(chip.textContent)) chip.classList.add('selected'); });
+  });
+  $$('fieldset[data-repeater]', form).forEach(fs=>{
+    const grp = (entry.groups||[]).find(g=>g.label===fs.dataset.repeater);
+    if(!grp || !grp.items.length) return;
+    const list = $('.repeater-list', fs);
+    const addBtn = $('[data-add]', fs);
+    const kind = addBtn.dataset.add;
+    while(list.children.length < grp.items.length){
+      list.insertAdjacentHTML('beforeend', REPEATER_TEMPLATES[kind]());
+    }
+    wireRemoveButtons(list);
+    Array.from(list.children).forEach((item,i)=>{
+      const data = grp.items[i];
+      if(!data) return;
+      $$('label.field', item).forEach(l=>{
+        const label = l.querySelector('span').textContent;
+        let match = data.find(f=>f.label===label);
+        if(!match && label==='Anzeigequalität') match=data.find(f=>f.label==='Anzeige / Verhalten am Opfer');
+        let value=match?.value;
+        if(!value && grp.label==='Helfer / Versteckperson'){
+          const legacyLabels={
+            'Versteckart / Position':'Position',
+            'Sichtbarkeit für den Hund':'Sichtbarkeit für den Hund',
+            'Verhalten im Versteck':'Zustand / Bewegung',
+            'Geruchsintensität / Liegezeit':'Geruchsintensität',
+            'Zugänglichkeit':'Zugänglichkeit'
+          };
+          if(legacyLabels[label]) value=findVal(entry,legacyLabels[label]);
+          if(label==='Individuelle Ablenkungen / Besonderheiten'){
+            const old=(entry.chips||[]).find(c=>c.label==='Zusatzreize');
+            if(old?.values?.length)value=old.values.join(', ');
+          }
+        }
+        if(value){
+          const control=l.querySelector('input,select,textarea');
+          if(control.tagName==='SELECT' && !Array.from(control.options).some(o=>o.value===value)) control.add(new Option(value,value));
+          control.value=value;
+        }
+      });
+      $$('[data-person-chipgroup]',item).forEach(group=>{
+        const saved=data.find(f=>f.label===group.dataset.personChipgroup)?.value||'';
+        const selected=new Set(saved.split(/\s*\|\s*/).filter(Boolean));
+        $$('.chip',group).forEach(chip=>chip.classList.toggle('selected',selected.has(chip.textContent)));
+      });
+    });
+  });
+  const placeName=findVal(entry,'Ort / Übungsstätte').trim();
+  const match=trainingPlaces.find(p=>(p.name||'').trim().toLocaleLowerCase('de-DE')===placeName.toLocaleLowerCase('de-DE'));
+  if(match && $('#place-template-select')){
+    $('#place-template-select').value=match.id;
+    $('#remember-new-place').checked=false;
+    updatePlaceButtons();
+    setPlaceStatus('Passende Gebietsvorlage erkannt. Abweichungen dieses älteren Eintrags wurden nicht überschrieben.');
+  }
+  wireChips(form);
+  refreshAllExerciseInfo();
+  updateRatingDelta();
+}
+
+function wireDrinnenToggle(){
+  const chk = $('#chk-drinnen');
+  if(!chk) return;
+  chk.onchange = ()=>{ $('#weather-fields').style.display = chk.checked ? 'none':'grid'; };
+}
+function wireChips(scope=$('#panel')){
+  $$('.chip',scope).forEach(chip=>{
+    chip.onclick = ()=> chip.classList.toggle('selected');
+  });
+}
+function wireRepeaters(){
+  $$('#panel [data-add]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const kind = btn.dataset.add;
+      const list = btn.previousElementSibling;
+      list.insertAdjacentHTML('beforeend', REPEATER_TEMPLATES[kind]());
+      wireRemoveButtons(list);
+      wireChips(list.lastElementChild);
+      refreshAllExerciseInfo();
+    };
+  });
+  $$('#panel .repeater-list').forEach(wireRemoveButtons);
+}
+function wireRemoveButtons(scope){
+  $$('.remove-row', scope).forEach(btn=>{
+    btn.onclick = ()=>{
+      const item = btn.closest('.repeater-item');
+      const list = item.parentElement;
+      if(list.children.length>1) item.remove();
+    };
+  });
+}
+
+/* ============================================================
+   ERFASSUNG DER FORMULARDATEN (generisch über alle Reiter)
+   ============================================================ */
+function collectEntryData(){
+  const form = $('#entry-form');
+  const basic = [];
+  // Rahmen + alle einfachen Felder außerhalb von Repeatern
+  $$('.frame-row label.field, fieldset.section:not([data-repeater]) label.field', form).forEach(l=>{
+    const inputEl = l.querySelector('input,select,textarea');
+    const label = l.querySelector('span').textContent;
+    if(label.startsWith('Gebietsvorlage')) return;
+    const value = inputEl.type==='checkbox' ? (inputEl.checked?'ja':'nein') : inputEl.value;
+    basic.push({label, value});
+  });
+  const chips = $$('[data-chipgroup]', form).map(g=>({
+    label: g.dataset.chipgroup,
+    values: $$('.chip.selected', g).map(c=>c.textContent)
+  })).filter(c=>c.values.length);
+
+  const groups = $$('fieldset[data-repeater]', form).map(fs=>{
+    const items = $$('.repeater-item', fs).map(item=>{
+      const fields=$$('label.field', item).map(l=>{
+        const inputEl = l.querySelector('input,select,textarea');
+        const label = l.querySelector('span').textContent;
+        return { label, value: inputEl.value };
+      }).filter(f=>f.value!=='');
+      const personSelections=$$('[data-person-chipgroup]',item).map(group=>({
+        label:group.dataset.personChipgroup,
+        value:$$('.chip.selected',group).map(chip=>chip.textContent).join(' | ')
+      })).filter(f=>f.value!=='');
+      return [...fields,...personSelections];
+    }).filter(it=>it.length);
+    return { label: fs.dataset.repeater, items };
+  }).filter(g=>g.items.length);
+
+  return { basic, chips, groups };
+}
+
+async function onSaveEntry(){
+  const meta = allDisciplines()[activeTab];
+  const data = collectEntryData();
+  const dateValue = (data.basic.find(f=>f.label==='Datum')||{}).value;
+  const timeValue = (data.basic.find(f=>f.label==='Uhrzeit')||{}).value;
+  const placeValue = ((data.basic.find(f=>f.label==='Ort / Übungsstätte')||{}).value||'').trim();
+  if(!dateValue || !timeValue || !placeValue){
+    const msg = $('#form-message');
+    if(msg) msg.textContent = 'Bitte Datum, Uhrzeit und Ort / Übungsstätte eintragen.';
+    showStep(0);
+    const target = !dateValue ? $('.frame-row input[type="date"]') : (!timeValue ? $('.frame-row input[type="time"]') : $('#training-place-name'));
+    if(target) target.focus();
+    return;
+  }
+  let entry;
+  if(editingEntryId){
+    const existing = entries.find(e=>e.id===editingEntryId);
+    entry = Object.assign({}, existing, {
+      basic: data.basic, chips: data.chips, groups: data.groups,
+      geaendertAm: new Date().toISOString()
+    });
+  } else {
+    entry = {
+      id: uid(), discipline: activeTab, disciplineLabel: meta.label,
+      timestamp: new Date().toISOString(),
+      basic: data.basic, chips: data.chips, groups: data.groups,
+      rhBridge: pendingHomeworkSource ? {...pendingHomeworkSource,source:'rh-ausbildungsbegleiter'} : null,
+      taktikImport: pendingTaktikImport || null
+    };
+  }
+  const btn = $('#btn-save-entry');
+  btn.disabled = true; btn.textContent = editingEntryId ? 'Speichere Änderungen …' : 'Speichere …';
+  const ok = await persistEntry(entry);
+  btn.disabled = false;
+  if(ok){
+    if(!editingEntryId){
+      lastSavedContext = {
+        date: findVal(entry,'Datum'), place: findVal(entry,'Ort / Übungsstätte'),
+        distanceKm: findVal(entry,'Entfernung zur Heimatadresse (km)'), time: findVal(entry,'Uhrzeit'),
+        weather: {
+          temp: findVal(entry,'Temperatur (°C)'), wind: findVal(entry,'Wind'), windDir: findVal(entry,'Windrichtung'),
+          niederschlag: findVal(entry,'Niederschlag'), licht: findVal(entry,'Licht-/Sichtverhältnisse')
+        }
+      };
+    }
+    if($('#remember-new-place')?.checked) storeCurrentPlace(false,true);
+    editingEntryId = null;
+    pendingHomeworkSource = null;
+    pendingTaktikImport = null;
+    render();
+  } else {
+    btn.textContent = editingEntryId ? 'Änderungen speichern' : 'Eintrag speichern';
+    const msg = $('#form-message');
+    if(msg) msg.textContent = 'Die automatische Speicherung ist in diesem Browser nicht verfügbar. Bitte eine Sicherungsdatei erstellen und herunterladen.';
+  }
+}
+
+/* ============================================================
+   EINTRAGSLISTE (je Trainingsart)
+   ============================================================ */
+function findVal(entry, label){
+  const f = entry.basic.find(b=>b.label===label);
+  return f ? f.value : '';
+}
+function renderEntryList(disciplineId, meta){
+  const list = entries.filter(e=>e.discipline===disciplineId).sort((a,b)=>entryTimeKey(b).localeCompare(entryTimeKey(a)));
+  const container = $('#entries-list');
+  if(!list.length){ container.innerHTML = `<div class="empty-hint">Noch keine Einträge in diesem Bereich.</div>`; return; }
+  container.innerHTML = list.map(e=>{
+    const date = findVal(e,'Datum') || e.timestamp.slice(0,10);
+    const time = findVal(e,'Uhrzeit');
+    const ort = findVal(e,'Ort / Übungsstätte');
+    const bewertung = findVal(e,'Gesamtbewertung');
+    return `<div class="entry" id="entry-${e.id}">
+      <div class="entry-summary" data-toggle="${e.id}">
+        <div class="meta">
+          <span class="date mono">${escapeHtml(date)}${time?' · '+escapeHtml(time)+' Uhr':''}</span>
+          ${ort?`<span class="place">${escapeHtml(ort)}</span>`:''}
+          ${bewertung?`<span class="badge" style="--tab-color:${meta.color}">${escapeHtml(bewertung)}</span>`:''}
+        </div>
+        <div class="entry-actions">
+          <button class="edit-btn" data-edit="${e.id}" type="button">Bearbeiten</button>
+          <button class="del-btn" data-del="${e.id}" type="button">Löschen</button>
+        </div>
+      </div>
+      <div class="entry-detail">${renderEntryDetail(e)}</div>
+    </div>`;
+  }).join('');
+
+  $$('.entry-summary').forEach(el=>{
+    el.onclick = (ev)=>{
+      if(ev.target.closest('.del-btn') || ev.target.closest('.edit-btn')) return;
+      el.closest('.entry').classList.toggle('open');
+    };
+  });
+  $$('.edit-btn').forEach(btn=>{
+    btn.onclick = (ev)=>{
+      ev.stopPropagation();
+      const entry = entries.find(e=>e.id===btn.dataset.edit);
+      if(entry) enterEditMode(entry);
+    };
+  });
+  $$('.del-btn').forEach(btn=>{
+    btn.onclick = (ev)=>{
+      ev.stopPropagation();
+      if(btn.dataset.confirm){
+        const id = btn.dataset.del;
+        deleteEntryStorage(id);
+        renderEntryList(disciplineId, meta);
+      } else {
+        btn.dataset.confirm = '1';
+        btn.textContent = 'wirklich löschen?';
+      }
+    };
+  });
+}
+function renderEntryDetail(e){
+  let html = '';
+  if(e.geaendertAm){
+    html += `<p class="hint" style="margin:0 0 10px;">Zuletzt geändert am ${new Date(e.geaendertAm).toLocaleString('de-DE')}</p>`;
+  }
+  html += `<dl>${e.basic.filter(f=>f.value!=='' && !HIDDEN_LEGACY_BASIC_LABELS.has(f.label)).map(f=>`<dt>${f.label}</dt><dd>${escapeHtml(f.value)}</dd>`).join('')}</dl>`;
+  if(e.chips && e.chips.length){
+    html += e.chips.map(c=>`<h4>${c.label}</h4><div class="chip-group">${c.values.map(v=>`<span class="chip selected" style="cursor:default">${v}</span>`).join('')}</div>`).join('');
+  }
+  if(e.taktikImport){
+    const lines=taktikSummaryLines(e.taktikImport);
+    if(lines.length) html += `<h4>Übernahme aus dem Flächensuchassistenten</h4><ul class="hint" style="margin:0 0 8px 18px">${lines.map(l=>`<li>${escapeHtml(l)}</li>`).join('')}</ul>`;
+  }
+  if(e.groups && e.groups.length){
+    html += e.groups.map(g=>`<h4>${g.label}</h4>` + g.items.map((it,i)=>
+      `<dl>${it.map(f=>`<dt>${f.label}</dt><dd>${escapeHtml(f.value)}</dd>`).join('')}</dl>`
+    ).join('<hr style="border:none;border-top:1px dashed var(--line);margin:6px 0;">')).join('');
+  }
+  return html;
+}
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* ============================================================
+   ANSICHT „TRAININGSTAGE“ – alle Übungsblöcke eines Tages
+   gemeinsam, auch bei mehreren Bereichen/VPs/Suchen mit Pause
+   ============================================================ */
+function groupEntriesByDay(){
+  const map={};
+  entries.forEach(e=>{
+    const d = findVal(e,'Datum')||e.timestamp.slice(0,10);
+    (map[d]=map[d]||[]).push(e);
+  });
+  return Object.entries(map).sort((a,b)=>b[0].localeCompare(a[0]));
+}
+function dayDisciplineChips(dayEntries){
+  const meta=allDisciplines();
+  const seen=new Set();
+  return dayEntries.filter(e=>{ if(seen.has(e.discipline)) return false; seen.add(e.discipline); return true; })
+    .map(e=>{ const m=meta[e.discipline]||{label:e.disciplineLabel,color:'var(--muted)'}; return `<span style="background:${m.color}">${escapeHtml(m.label)}</span>`; }).join('');
+}
+function renderTageView(){
+  const groups = groupEntriesByDay();
+  if(!groups.length) return `<div class="empty-hint">Noch keine Trainingseinträge vorhanden. Unter „Training erfassen“ den ersten Eintrag anlegen.</div>`;
+  return groups.map(([date, dayEntries])=>{
+    const sorted = dayEntries.slice().sort((a,b)=> (findVal(a,'Uhrzeit')||'').localeCompare(findVal(b,'Uhrzeit')||''));
+    const dateObj = new Date(date+'T00:00:00');
+    const dateTxt = isNaN(dateObj) ? date : dateObj.toLocaleDateString('de-DE',{weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
+    const places = [...new Set(dayEntries.map(e=>findVal(e,'Ort / Übungsstätte')).filter(v=>v && v!=='(spontane Übung)'))];
+    return `<div class="day-card" id="day-${date}">
+      <div class="day-head" data-day-toggle="${date}">
+        <div>
+          <div class="date">${escapeHtml(dateTxt)}</div>
+          <div class="summary">${dayEntries.length} ${dayEntries.length===1?'Übungsblock':'Übungsblöcke'}${places.length?' · '+escapeHtml(places.join(', ')):''}</div>
+        </div>
+        <div class="chips-inline">${dayDisciplineChips(sorted)}</div>
+      </div>
+      <div class="day-body">
+        ${sorted.map(e=>renderDayBlock(e)).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderDayBlock(e){
+  const meta = allDisciplines()[e.discipline] || {label:e.disciplineLabel, color:'var(--muted)'};
+  const time = findVal(e,'Uhrzeit');
+  const pause = findVal(e,'Pause vor diesem Block');
+  const bewertung = findVal(e,'Gesamtbewertung');
+  return `<div class="entry" id="entry-${e.id}">
+    <div class="entry-summary" data-toggle="${e.id}">
+      <div class="meta">
+        <span class="date mono">${time?escapeHtml(time)+' Uhr':''}</span>
+        <span class="place" style="color:${meta.color}; font-weight:600;">${escapeHtml(meta.label)}</span>
+        ${pause?`<span class="place">Pause davor: ${escapeHtml(pause)}</span>`:''}
+        ${bewertung?`<span class="badge" style="--tab-color:${meta.color}">${escapeHtml(bewertung)}</span>`:''}
+      </div>
+      <div class="entry-actions">
+        <button class="edit-btn" data-edit-day="${e.id}" type="button">Bearbeiten</button>
+        <button class="del-btn" data-del-day="${e.id}" type="button">Löschen</button>
+      </div>
+    </div>
+    <div class="entry-detail">${renderEntryDetail(e)}</div>
+  </div>`;
+}
+function wireTageView(){
+  $$('[data-day-toggle]').forEach(el=> el.onclick = ()=> el.closest('.day-card').classList.toggle('open'));
+  $$('[data-toggle]', $('#app-view')).forEach(el=>{
+    el.onclick=(ev)=>{ if(ev.target.closest('.del-btn')||ev.target.closest('.edit-btn')) return; el.closest('.entry').classList.toggle('open'); };
+  });
+  $$('[data-edit-day]').forEach(btn=> btn.onclick=(ev)=>{
+    ev.stopPropagation();
+    const entry = entries.find(x=>x.id===btn.dataset.editDay);
+    if(entry){ mainView='erfassen'; render(); enterEditMode(entry); }
+  });
+  $$('[data-del-day]').forEach(btn=> btn.onclick=(ev)=>{
+    ev.stopPropagation();
+    if(btn.dataset.confirm){
+      const id=btn.dataset.delDay;
+      deleteEntryStorage(id);
+      render();
+    } else { btn.dataset.confirm='1'; btn.textContent='wirklich löschen?'; }
+  });
+}
+
+/* ============================================================
+   ANSICHT „AUSWERTUNG“ – regelbasierte, lokale Einschätzung
+   (keine echte KI: reine Abstands-/Trendberechnung aus den
+   gespeicherten Einträgen, vollständig offline)
+   ============================================================ */
+function disciplineStats(id, meta){
+  const list = entries.filter(e=>e.discipline===id).slice().sort((a,b)=>entryTimeKey(a).localeCompare(entryTimeKey(b)));
+  const today = new Date(); today.setHours(0,0,0,0);
+  if(!list.length){
+    return { id, label:meta.label, color:meta.color, count:0, lastDateStr:null, daysSince:null, trend:'noch keine Einträge', lastStep:'', avgRatingIdx:null, priority:35 };
+  }
+  const last = list[list.length-1];
+  const lastDateStr = findVal(last,'Datum')||last.timestamp.slice(0,10);
+  const lastDateObj = new Date(lastDateStr+'T00:00:00');
+  const daysSince = Math.max(0, Math.round((today-lastDateObj)/86400000));
+  const ratings = list.map(e=>{ const r=findVal(e,'Gesamtbewertung'); const idx=RESULT_SCALE.indexOf(r); return idx>=0?idx:null; }).filter(v=>v!==null);
+  let trend='noch zu wenige bewertete Einträge für eine Tendenzaussage';
+  if(ratings.length>=2){
+    const recent=ratings.slice(-3), earlier=ratings.slice(0,-3);
+    if(earlier.length){
+      const avgRecent=recent.reduce((a,b)=>a+b,0)/recent.length;
+      const avgEarlier=earlier.reduce((a,b)=>a+b,0)/earlier.length;
+      const diff=avgEarlier-avgRecent;
+      if(diff>0.4) trend='Tendenz: verbessert sich';
+      else if(diff<-0.4) trend='Tendenz: eher schwankend/rückläufig';
+      else trend='Tendenz: stabil';
+    }
+  }
+  const lastStep = findVal(last,'Nächster kleinster Trainingsschritt')||findVal(last,'Lernschritt seit dem vorherigen Training')||'';
+  const avgRatingIdx = ratings.length? ratings.reduce((a,b)=>a+b,0)/ratings.length : null;
+  let priority = Math.min(60, daysSince*1.5);
+  if(trend.includes('rückläufig')) priority += 20;
+  if(avgRatingIdx!==null && avgRatingIdx>=3) priority += 10;
+  return { id, label:meta.label, color:meta.color, count:list.length, lastDateStr, daysSince, trend, lastStep, avgRatingIdx, priority };
+}
+/* Teamfortschritt Hund und Hundeführer getrennt (v2.9): nutzt die mit dem Eintrag
+   gespeicherte Abschlussauswertung aus dem Flächensuchassistenten. Tendenz = Mittel der
+   letzten drei Bewertungen gegenüber allen früheren; ab 0,4 Punkten Unterschied. */
+function teamProgressStats(side){
+  const list=entries.filter(e=>e.taktikImport&&e.taktikImport.auswertung&&e.taktikImport.auswertung[side])
+    .slice().sort((a,b)=>entryTimeKey(a).localeCompare(entryTimeKey(b)));
+  const crit={};
+  list.forEach(e=>{
+    const r=e.taktikImport.auswertung[side].ratings||{};
+    Object.entries(r).forEach(([k,v])=>{ if(Number.isFinite(v)) (crit[k]=crit[k]||[]).push(v); });
+  });
+  const rows=Object.entries(crit).map(([k,vals])=>{
+    const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+    let trend='noch zu wenige Werte';
+    if(vals.length>=4){
+      const rec=vals.slice(-3), ear=vals.slice(0,-3);
+      const d=rec.reduce((a,b)=>a+b,0)/rec.length - ear.reduce((a,b)=>a+b,0)/ear.length;
+      trend = d>=0.4 ? '↗ verbessert' : (d<=-0.4 ? '↘ rückläufig' : '→ stabil');
+    } else if(vals.length>=2){
+      const d=vals[vals.length-1]-vals[0];
+      trend = d>0 ? '↗ (wenige Werte)' : (d<0 ? '↘ (wenige Werte)' : '→ (wenige Werte)');
+    }
+    return {label:taktikEvalLabel(k), n:vals.length, last:vals[vals.length-1], avg, trend};
+  }).sort((a,b)=>a.avg-b.avg);
+  return {count:list.length, rows};
+}
+function renderTeamProgress(){
+  const sides=[['hundefuehrer','Hundeführer/in'],['hund','Hund']];
+  const blocks=sides.map(([key,title])=>{
+    const st=teamProgressStats(key);
+    if(!st.count) return `<div class="analysis-card priority-low"><h4>${title}</h4><p class="hint">Noch keine übernommene Abschlussauswertung vorhanden.</p></div>`;
+    return `<div class="analysis-card"><h4>${title} · ${st.count} bewertete Suche${st.count===1?'':'n'}</h4>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.88rem">
+      <thead><tr><th style="text-align:left">Kriterium</th><th>Anz.</th><th>zuletzt</th><th>Mittel</th><th>Tendenz</th></tr></thead>
+      <tbody>${st.rows.map(r=>`<tr><td>${escapeHtml(r.label)}</td><td style="text-align:center">${r.n}</td><td style="text-align:center">${r.last}/5</td><td style="text-align:center">${r.avg.toFixed(1)}</td><td>${escapeHtml(r.trend)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="hint" style="margin-top:6px">Sortiert nach Mittelwert, schwächste Kriterien zuerst.</p></div>`;
+  }).join('');
+  return `<div class="analysis-summary" style="margin-top:16px"><h3>Teamfortschritt Hund und Hundeführer</h3>
+    <p class="analysis-note">Aus den Abschlussauswertungen des Flächensuchassistenten (Skala 1–5, 5 = beste Stufe). Einsätze werden nicht bewertet. Regelbasierte Übersicht, keine fachliche Beurteilung.</p></div>
+    <div class="analysis-grid">${blocks}</div>`;
+}
+function renderAuswertungView(){
+  const meta = allDisciplines();
+  const ids = Object.keys(meta);
+  const stats = ids.map(id=>disciplineStats(id, meta[id])).sort((a,b)=>b.priority-a.priority);
+  const top = stats.slice(0,3);
+  const totalEntries = entries.length;
+  return `
+    <div class="analysis-summary">
+      <h3>Trainingsempfehlung für die nächsten Einheiten</h3>
+      ${totalEntries<3 ? `<p class="hint">Noch sehr wenige Einträge vorhanden (${totalEntries}) – die Auswertung wird aussagekräftiger, je mehr Trainings dokumentiert sind.</p>` : ''}
+      ${top.length? `<ol>${top.map(s=>`<li><strong>${escapeHtml(s.label)}</strong> – ${s.count? `zuletzt vor ${s.daysSince} Tag${s.daysSince===1?'':'en'} trainiert, ${escapeHtml(s.trend)}.`:'noch nicht dokumentiert.'} ${s.lastStep?`Zuletzt als nächster Schritt notiert: „${escapeHtml(s.lastStep)}“.`:''}</li>`).join('')}</ol>` : '<p class="hint">Noch keine Daten für eine Empfehlung.</p>'}
+      <p class="analysis-note">Regelbasierte, lokal im Browser berechnete Einschätzung aus Ihren gespeicherten Einträgen (Abstand zum letzten Training, Bewertungsverlauf) – keine echte KI und keine fachliche Trainingsberatung. Bitte fachlich einordnen.</p>
+    </div>
+    <div class="analysis-grid">
+      ${stats.map(s=>`<div class="analysis-card ${s.priority>=45?'priority-high':s.priority>=25?'priority-med':'priority-low'}">
+        <h4><span class="dot" style="background:${s.color}"></span>${escapeHtml(s.label)}</h4>
+        <dl>
+          <dt>Einträge</dt><dd>${s.count}</dd>
+          <dt>Zuletzt</dt><dd>${s.lastDateStr? new Date(s.lastDateStr+'T00:00:00').toLocaleDateString('de-DE') + ' ('+s.daysSince+' Tage her)' : '–'}</dd>
+          <dt>Tendenz</dt><dd class="trend">${escapeHtml(s.trend)}</dd>
+          ${s.lastStep?`<dt>Nächster Schritt (notiert)</dt><dd>${escapeHtml(s.lastStep)}</dd>`:''}
+        </dl>
+      </div>`).join('')}
+    </div>${renderTeamProgress()}`;
+}
+function wireAuswertungView(){ /* aktuell keine zusätzliche Interaktion nötig */ }
+
+/* ============================================================
+   EXCEL-EXPORT – vollständig offline, ohne externe Bibliothek
+   ============================================================ */
+function overviewRow(e){
+  const persons = personItems(e);
+  const personResults = persons.map((p,i)=>{
+    const name = itemValue(p,'Kürzel / Initialen') || `Person ${i+1}`;
+    return `${name}: ${itemValue(p,'Gefunden / angezeigt') || 'nicht bewertet'}`;
+  });
+  return {
+    'Bereich': e.disciplineLabel,
+    'Datum': findVal(e,'Datum') || e.timestamp.slice(0,10),
+    'Uhrzeit': findVal(e,'Uhrzeit') || '',
+    'Ort / Übungsstätte': findVal(e,'Ort / Übungsstätte'),
+    'Entfernung zur Heimatadresse (km)': findVal(e,'Entfernung zur Heimatadresse (km)'),
+    'Anzahl Versteck-/Zielpersonen': persons.length || '',
+    'Ergebnisse der Personen': personResults.join(' | '),
+    'Ergebnis / Bewertung': findVal(e,'Gesamtbewertung') || findVal(e,'Anzeige erfolgt') || '',
+    'Lernschritt zum Voreintrag': findVal(e,'Lernschritt seit dem vorherigen Training') || findVal(e,'Fortschritt im Vergleich zur letzten Einheit'),
+    'Nächster kleinster Trainingsschritt': findVal(e,'Nächster kleinster Trainingsschritt'),
+    'Freitext / Notizen': findVal(e,'Freitext / Notizen')
+  };
+}
+function itemValue(item, label){
+  const f = (item||[]).find(x=>x.label===label);
+  return f ? f.value : '';
+}
+function personItems(e){
+  const group = (e.groups||[]).find(g=>g.label==='Helfer / Versteckperson');
+  if(!group) return [];
+  return group.items.filter(item=>{
+    const role = itemValue(item,'Rolle');
+    return role==='Versteckperson' || role==='unbekannte Zielperson';
+  });
+}
+function personRows(list){
+  const rows = [];
+  list.forEach(e=> personItems(e).forEach((item,index)=>{
+    const row = {
+      'Bereich':e.disciplineLabel,
+      'Datum':findVal(e,'Datum') || e.timestamp.slice(0,10),
+      'Uhrzeit':findVal(e,'Uhrzeit') || '',
+      'Ort / Übungsstätte':findVal(e,'Ort / Übungsstätte'),
+      'Entfernung zur Heimatadresse (km)':findVal(e,'Entfernung zur Heimatadresse (km)'),
+      'Person Nr.':index+1
+    };
+    item.forEach(f=>{ if(f.value!=='') row[f.label]=f.value; });
+    rows.push(row);
+  }));
+  return rows;
+}
+function entryToFlatRow(e){
+  const row = { 'Bereich': e.disciplineLabel };
+  e.basic.forEach(f=>{ if(f.value!=='' && !HIDDEN_LEGACY_BASIC_LABELS.has(f.label)) row[f.label] = f.value; });
+  (e.chips||[]).forEach(c=>{ if(c.values.length) row[c.label] = c.values.join(', '); });
+  (e.groups||[]).forEach(g=>{
+    if(g.items.length){
+      row[g.label] = g.items.map(it => it.map(f=>`${f.label}: ${f.value}`).join('; ')).join('  ||  ');
+    }
+  });
+  if(e.geaendertAm) row['Zuletzt geändert'] = new Date(e.geaendertAm).toLocaleString('de-DE');
+  return row;
+}
+function sanitizeSheetName(s){
+  const clean = s.replace(/[\\\/\?\*\[\]:]/g,'').trim();
+  return (clean || 'Bereich').slice(0,31);
+}
+function sortChronologically(list){
+  // Datum + Trainingsuhrzeit; Erfassungszeitpunkt bleibt der letzte Tiebreaker.
+  return list.slice().sort((a,b)=>{
+    const da = findVal(a,'Datum') || a.timestamp.slice(0,10);
+    const db = findVal(b,'Datum') || b.timestamp.slice(0,10);
+    if(da !== db) return da.localeCompare(db);
+    const ta = findVal(a,'Uhrzeit') || a.timestamp.slice(11,16) || '';
+    const tb = findVal(b,'Uhrzeit') || b.timestamp.slice(11,16) || '';
+    if(ta !== tb) return ta.localeCompare(tb);
+    return (a.timestamp||'').localeCompare(b.timestamp||'');
+  });
+}
+
+/* --- Offline-XLSX-Helfer (ZIP + Office Open XML) --- */
+function xmlEscape(value){
+  return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+function columnName(index){
+  let name='';
+  for(let n=index+1;n>0;n=Math.floor((n-1)/26)) name=String.fromCharCode(65+(n-1)%26)+name;
+  return name;
+}
+function uniqueSheetName(name, used){
+  const base=sanitizeSheetName(name);
+  let candidate=base, count=2;
+  while(used.has(candidate.toLocaleLowerCase('de'))){
+    const suffix=` (${count++})`;
+    candidate=base.slice(0,31-suffix.length)+suffix;
+  }
+  used.add(candidate.toLocaleLowerCase('de'));
+  return candidate;
+}
+function rowsToWorksheetXml(rows){
+  const headers=[];
+  rows.forEach(row=>Object.keys(row).forEach(key=>{if(!headers.includes(key))headers.push(key);}));
+  if(!headers.length) headers.push('Keine Daten');
+  const widths=headers.map(header=>{
+    let max=header.length;
+    rows.forEach(row=>{const value=row[header];if(value!=null)max=Math.max(max,String(value).length);});
+    return Math.min(Math.max(max+2,10),60);
+  });
+  const cell=(ref,value,style='')=>`<c r="${ref}" t="inlineStr"${style?` s="${style}"`:''}><is><t xml:space="preserve">${xmlEscape(value)}</t></is></c>`;
+  const headerRow=`<row r="1">${headers.map((header,col)=>cell(`${columnName(col)}1`,header,'1')).join('')}</row>`;
+  const dataRows=rows.map((row,rowIndex)=>`<row r="${rowIndex+2}">${headers.map((header,col)=>cell(`${columnName(col)}${rowIndex+2}`,row[header])).join('')}</row>`).join('');
+  const endRef=`${columnName(headers.length-1)}${Math.max(rows.length+1,1)}`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
+  <dimension ref="A1:${endRef}"/>
+  <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+  <cols>${widths.map((width,index)=>`<col min="${index+1}" max="${index+1}" width="${width}" customWidth="1"/>`).join('')}</cols>
+  <sheetData>${headerRow}${dataRows}</sheetData>
+  <autoFilter ref="A1:${endRef}"/>
+  <printOptions horizontalCentered="0" verticalCentered="0"/>
+  <pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>
+  <pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0" paperSize="9"/>
+</worksheet>`;
+}
+function little16(value){return new Uint8Array([value&255,(value>>>8)&255]);}
+function little32(value){return new Uint8Array([value&255,(value>>>8)&255,(value>>>16)&255,(value>>>24)&255]);}
+function joinBytes(parts){
+  const length=parts.reduce((sum,part)=>sum+part.length,0), result=new Uint8Array(length);
+  let offset=0; parts.forEach(part=>{result.set(part,offset);offset+=part.length;});
+  return result;
+}
+let crcTableCache=null;
+function crc32(bytes){
+  if(!crcTableCache){
+    crcTableCache=new Uint32Array(256);
+    for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);crcTableCache[n]=c>>>0;}
+  }
+  let crc=0xFFFFFFFF;
+  for(const byte of bytes) crc=crcTableCache[(crc^byte)&255]^(crc>>>8);
+  return (crc^0xFFFFFFFF)>>>0;
+}
+function createStoredZip(files){
+  const encoder=new TextEncoder(), localParts=[], centralParts=[];
+  const now=new Date(), year=Math.max(1980,now.getFullYear());
+  const dosTime=(now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1);
+  const dosDate=((year-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
+  let offset=0;
+  files.forEach(file=>{
+    const name=encoder.encode(file.name), data=typeof file.data==='string'?encoder.encode(file.data):file.data;
+    const checksum=crc32(data);
+    const localHeader=joinBytes([
+      little32(0x04034B50),little16(20),little16(0x0800),little16(0),little16(dosTime),little16(dosDate),
+      little32(checksum),little32(data.length),little32(data.length),little16(name.length),little16(0),name
+    ]);
+    localParts.push(localHeader,data);
+    centralParts.push(joinBytes([
+      little32(0x02014B50),little16(20),little16(20),little16(0x0800),little16(0),little16(dosTime),little16(dosDate),
+      little32(checksum),little32(data.length),little32(data.length),little16(name.length),little16(0),little16(0),
+      little16(0),little16(0),little32(0),little32(offset),name
+    ]));
+    offset+=localHeader.length+data.length;
+  });
+  const localData=joinBytes(localParts), centralData=joinBytes(centralParts);
+  const end=joinBytes([
+    little32(0x06054B50),little16(0),little16(0),little16(files.length),little16(files.length),
+    little32(centralData.length),little32(localData.length),little16(0)
+  ]);
+  return joinBytes([localData,centralData,end]);
+}
+function buildOfflineXlsx(sheetDefinitions){
+  const used=new Set();
+  const sheets=sheetDefinitions.map(sheet=>({name:uniqueSheetName(sheet.name,used),rows:sheet.rows}));
+  const worksheetOverrides=sheets.map((_,index)=>`<Override PartName="/xl/worksheets/sheet${index+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('');
+  const contentTypes=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${worksheetOverrides}</Types>`;
+  const rootRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const workbook=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets>${sheets.map((sheet,index)=>`<sheet name="${xmlEscape(sheet.name)}" sheetId="${index+1}" r:id="rId${index+1}"/>`).join('')}</sheets></workbook>`;
+  const workbookRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_,index)=>`<Relationship Id="rId${index+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${index+1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Aptos"/></font><font><b/><sz val="11"/><name val="Aptos"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9E2D0"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const files=[
+    {name:'[Content_Types].xml',data:contentTypes},
+    {name:'_rels/.rels',data:rootRels},
+    {name:'xl/workbook.xml',data:workbook},
+    {name:'xl/_rels/workbook.xml.rels',data:workbookRels},
+    {name:'xl/styles.xml',data:styles},
+    ...sheets.map((sheet,index)=>({name:`xl/worksheets/sheet${index+1}.xml`,data:rowsToWorksheetXml(sheet.rows)}))
+  ];
+  return createStoredZip(files);
+}
+function downloadOfflineXlsx(sheetDefinitions,filename){
+  const bytes=buildOfflineXlsx(sheetDefinitions);
+  const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob), link=document.createElement('a');
+  link.href=url; link.download=filename; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+}
+/* --- Ende Offline-XLSX-Helfer --- */
+
+function exportExcel(disciplineFilter, statusElId){
+  const statusEl = document.getElementById(statusElId);
+  const setStatus = msg => { if(statusEl){ statusEl.textContent = msg; setTimeout(()=>{ if(statusEl) statusEl.textContent=''; }, 4500); } };
+  const raw = disciplineFilter ? entries.filter(e=>e.discipline===disciplineFilter) : entries.slice();
+  if(!raw.length){ setStatus('Keine Einträge zum Exportieren vorhanden.'); return; }
+  const list = sortChronologically(raw);
+  const persons = personRows(list);
+  const byDiscipline = {};
+  list.forEach(e=>{ (byDiscipline[e.discipline] = byDiscipline[e.discipline] || []).push(e); });
+  const sheets=[{name:'Übersicht',rows:list.map(overviewRow)}];
+  if(persons.length) sheets.push({name:'Versteckpersonen',rows:persons});
+  Object.values(byDiscipline).forEach(ents=>sheets.push({name:ents[0].disciplineLabel,rows:ents.map(entryToFlatRow)}));
+
+  const stamp = localDateValue();
+  const fname = disciplineFilter
+    ? `Trainingstagebuch_${sanitizeSheetName(allDisciplines()[disciplineFilter].label)}_${stamp}.xlsx`
+    : `Trainingstagebuch_Gesamtuebersicht_${stamp}.xlsx`;
+  downloadOfflineXlsx(sheets,fname);
+  setStatus('Excel-Datei wurde offline erstellt und wird heruntergeladen …');
+}
+
+/* ============================================================
+   TASTENKÜRZEL
+   ============================================================ */
+function globalKeyHandler(ev){
+  if(ev.altKey && !ev.ctrlKey && !ev.metaKey){
+    if(ev.key==='1'){ mainView='erfassen'; editingEntryId=null; render(); ev.preventDefault(); return; }
+    if(ev.key==='2'){ mainView='tage'; render(); ev.preventDefault(); return; }
+    if(ev.key==='3'){ mainView='auswertung'; render(); ev.preventDefault(); return; }
+    if(ev.key==='ArrowRight'){ const btn=$('#btn-step-next'); if(btn && btn.style.display!=='none') btn.click(); ev.preventDefault(); return; }
+    if(ev.key==='ArrowLeft'){ const btn=$('#btn-step-prev'); if(btn) btn.click(); ev.preventDefault(); return; }
+    if(ev.key==='h' || ev.key==='H'){ const pop=$('#shortcuts-pop'); if(pop) pop.classList.toggle('open'); ev.preventDefault(); return; }
+  }
+  if((ev.ctrlKey||ev.metaKey) && ev.key==='Enter'){
+    const saveBtn=$('#btn-save-entry');
+    if(saveBtn && saveBtn.style.display!=='none'){ saveBtn.click(); ev.preventDefault(); }
+    return;
+  }
+  if(ev.key==='Escape'){
+    const pop=$('#shortcuts-pop');
+    if(pop && pop.classList.contains('open')){ pop.classList.remove('open'); ev.preventDefault(); return; }
+    if(editingEntryId){ editingEntryId=null; render(); }
+  }
+}
+
+/* ============================================================
+   START
+   ============================================================ */
+async function init(){
+  loadPrivateHome();
+  loadLocalState();
+  $('#btn-export-all').onclick = ()=> exportExcel(null, 'export-status');
+  $('#file-load-input').onchange = (e)=>{
+    const f = e.target.files[0];
+    if(f) importStateFromFile(f);
+    e.target.value = '';
+  };
+  document.body.addEventListener('change', (e)=>{
+    if(e.target.classList && e.target.classList.contains('ex-select')) updateExerciseInfo(e.target);
+  });
+  document.body.addEventListener('keydown', globalKeyHandler);
+  const closeShortcuts = $('#btn-close-shortcuts');
+  if(closeShortcuts) closeShortcuts.onclick = ()=> $('#shortcuts-pop').classList.remove('open');
+  const closeLegal = $('#btn-close-legal');
+  if(closeLegal) closeLegal.onclick = ()=> $('#legal-pop').classList.remove('open');
+  const pop = $('#shortcuts-pop');
+  if(pop) pop.onclick = (e)=>{ if(e.target.id==='shortcuts-pop') pop.classList.remove('open'); };
+  ensureProfileExchange();
+  $('#btn-rhs-export').onclick=()=>{ensureProfileExchange();saveLocalState();downloadRhs(makeRhsTeamPackage(),'RHS_Team_'+String(profile.hund||'Team').replace(/[^a-z0-9äöüß_-]+/gi,'_')+'.json');rhsStatus('Team-Paket erstellt. Der Abgleich kann jederzeit später erfolgen.');};
+  $('#btn-rhs-import').onclick=()=>$('#rhs-exchange-input').click();
+  $('#rhs-exchange-input').onchange=async(e)=>{const f=e.target.files[0];if(!f)return;try{const result=mergeRhsTeam(JSON.parse(await f.text()));if(!saveLocalState())throw new Error('Import konnte lokal nicht gespeichert werden.');renderProfileSummary();fillProfileForm();rhsStatus(result.accepted+' neuere Feldänderung(en) übernommen, '+result.ignored+' ältere verworfen, '+result.conflicts+' Konflikt(e) geprüft.');}catch(err){rhsStatus(err.message||'Import fehlgeschlagen.',true);}finally{e.target.value='';}};
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveLocalState();});
+  window.addEventListener('pagehide',()=>saveLocalState());
+  window.addEventListener('beforeunload',e=>{if(hasUnsavedEntry()||(activeTab==='spontan'&&String(spontanDraft||'').trim())){e.preventDefault();e.returnValue='';}});
+  window.addEventListener('popstate',e=>{const st=e.state;if(st&&st.rhsTraining){mainView=st.mainView||'erfassen';activeTab=st.activeTab||activeTab;editingEntryId=null;render();}});
+  history.replaceState({rhsTraining:true,mainView,activeTab},'',location.href);
+  renderProfileSummary();
+  renderStorageBar();
+  render();
+}
+init();
+</script>
+
+<script id="ux-compact-helper">
+(function(){
+ function foldHeading(h){
+   if(!h||h.closest('details')||h.dataset.uxFolded) return;
+   var level=Number(h.tagName.slice(1)), parent=h.parentNode; if(!parent)return;
+   var d=document.createElement('details'); d.className='ux-help-details';
+   var s=document.createElement('summary'); s.textContent=h.textContent.trim(); d.appendChild(s);
+   h.dataset.uxFolded='1'; var n=h.nextSibling; h.remove();
+   while(n){ var next=n.nextSibling; if(n.nodeType===1 && /^H[1-6]$/.test(n.tagName) && Number(n.tagName.slice(1))<=level) break; d.appendChild(n); n=next; }
+   parent.insertBefore(d,n);
+ }
+ function init(){
+   var patterns=[/allgemeine grundsätze/i,/so liest du/i,/rassetypische hinweise/i,/lebensphase.*lernfähigkeit/i,/eigenwahrnehmung.*selbstcheck/i,/trainingsaufbau-checkliste/i,/was die app kann/i,/bedienungsanleitung/i,/tastenkürzel/i];
+   Array.from(document.querySelectorAll('h2,h3,h4')).filter(function(h){return patterns.some(function(r){return r.test(h.textContent||'')})}).forEach(foldHeading);
+   document.querySelectorAll('details.ux-help-details').forEach(function(d){d.open=false});
+ }
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+
+<script>
+/* PWA: Service Worker nur bei Auslieferung über https (z. B. GitHub Pages), nicht bei Öffnen als Datei */
+if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost')){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'}).catch(e=>console.warn('Service Worker nicht registriert',e)));
+}
+</script>
+</body>
+</html>
